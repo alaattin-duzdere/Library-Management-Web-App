@@ -1,0 +1,15 @@
+### IDE & OS Specific ###
+.DS_Store
+.idea/
+.vscode/
+xq
+### Next.js (Frontend) ###
+/frontend/node_modules/
+/frontend/.next/
+/frontend/out/
+
+### Spring Boot (Backend) ###
+/backend/target/
+/backend/mvnw
+/backend/mvnw.cmd
+/backend/.mvn/wrapper/maven-wrapper.jar
