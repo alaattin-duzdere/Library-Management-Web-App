@@ -1,4 +1,4 @@
-package com.example.marketplace_backend.common.config;
+package com.example.marketplace_backend.config;
 
 import com.example.marketplace_backend.user.repository.UserRepository;
 import org.springframework.context.annotation.Bean;

@@ -1,7 +1,7 @@
 package com.example.marketplace_backend.user.service.impl;
 
 import com.example.marketplace_backend.common.enums.Role;
-import com.example.marketplace_backend.common.security.JwtService;
+import com.example.marketplace_backend.security.JwtService;
 import com.example.marketplace_backend.user.dto.AuthRequest;
 import com.example.marketplace_backend.user.dto.AuthResponse;
 import com.example.marketplace_backend.user.dto.DtoUser;

@@ -1,4 +1,4 @@
-package com.example.marketplace_backend.common.security;
+package com.example.marketplace_backend.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
