@@ -1,5 +1,8 @@
 package com.example.marketplace_backend.config;
 
+import com.example.marketplace_backend.exception.BaseException;
+import com.example.marketplace_backend.exception.ErrorMessage;
+import com.example.marketplace_backend.exception.MessageType;
 import com.example.marketplace_backend.user.repository.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,7 +28,7 @@ public class AppConfig {
         return new UserDetailsService() {
             @Override
             public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-                return userRepository.findByUsername(username).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                return userRepository.findByUsername(username).orElseThrow(() -> new BaseException(new ErrorMessage(MessageType.UserName_Not_Found, ": " + username)));
             }
         };
     }

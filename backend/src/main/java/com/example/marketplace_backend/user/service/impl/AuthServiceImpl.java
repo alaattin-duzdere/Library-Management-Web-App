@@ -1,6 +1,9 @@
 package com.example.marketplace_backend.user.service.impl;
 
 import com.example.marketplace_backend.common.enums.Role;
+import com.example.marketplace_backend.exception.BaseException;
+import com.example.marketplace_backend.exception.ErrorMessage;
+import com.example.marketplace_backend.exception.MessageType;
 import com.example.marketplace_backend.security.JwtService;
 import com.example.marketplace_backend.user.dto.AuthRequest;
 import com.example.marketplace_backend.user.dto.AuthResponse;
@@ -77,7 +80,7 @@ public class AuthServiceImpl implements IAuthService {
                     new UsernamePasswordAuthenticationToken(input.getUsername(), input.getPassword());
             authenticationProvider.authenticate(authenticationToken);
 
-            User user = userRepository.findByUsername(input.getUsername()).orElseThrow(() -> new RuntimeException("User not found"));
+            User user = userRepository.findByUsername(input.getUsername()).orElseThrow(() -> new BaseException(new ErrorMessage(MessageType.No_Record_Exist,"User not found : "+input.getUsername())));
 
             String accessToken = jwtUtil.generateToken(user);
             RefreshToken savedRefreshToken = refreshTokenRepository.save(createRefreshToken(user));
@@ -85,9 +88,7 @@ public class AuthServiceImpl implements IAuthService {
             return new AuthResponse(accessToken,savedRefreshToken.getRefreshToken());
 
         }catch (Exception e){
-            e.printStackTrace();
+            throw new BaseException(new ErrorMessage(MessageType.Authentication_Error,"Authentication failed for user: "+input.getUsername()));
         }
-
-        return null;
     }
 }
