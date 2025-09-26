@@ -1,5 +1,9 @@
 package com.example.marketplace_backend.security;
 
+import com.example.marketplace_backend.exception.BaseException;
+import com.example.marketplace_backend.exception.ErrorMessage;
+import com.example.marketplace_backend.exception.MessageType;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -60,8 +64,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         }
+        catch (ExpiredJwtException ex){
+            throw new BaseException(new ErrorMessage(MessageType.Token_Expired,ex.getMessage()));
+        }
         catch (Exception e){
-            throw  new RuntimeException(e);
+            throw new BaseException(new ErrorMessage(MessageType.General_Exception,e.getMessage()));
         }
         filterChain.doFilter(request, response);
     }
