@@ -1,6 +1,7 @@
 package com.example.marketplace_backend.user.service.impl;
 
 import com.example.marketplace_backend.common.enums.Role;
+import com.example.marketplace_backend.common.util.EmailService;
 import com.example.marketplace_backend.exception.BaseException;
 import com.example.marketplace_backend.exception.ErrorMessage;
 import com.example.marketplace_backend.exception.MessageType;
@@ -11,8 +12,10 @@ import com.example.marketplace_backend.user.dto.DtoUser;
 import com.example.marketplace_backend.user.dto.LoginRequest;
 import com.example.marketplace_backend.user.model.RefreshToken;
 import com.example.marketplace_backend.user.model.User;
+import com.example.marketplace_backend.user.model.VerificationToken;
 import com.example.marketplace_backend.user.repository.RefreshTokenRepository;
 import com.example.marketplace_backend.user.repository.UserRepository;
+import com.example.marketplace_backend.user.repository.VerificationTokenRepository;
 import com.example.marketplace_backend.user.service.IAuthService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -20,12 +23,17 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 public class AuthServiceImpl implements IAuthService {
+
+    private final EmailService emailService;
+
+    private final VerificationTokenRepository tokenRepository;
 
     private final RefreshTokenRepository refreshTokenRepository;
 
@@ -37,7 +45,9 @@ public class AuthServiceImpl implements IAuthService {
 
     private final BCryptPasswordEncoder passwordEncoder;
 
-    public AuthServiceImpl(RefreshTokenRepository refreshTokenRepository, JwtService jwtUtil, AuthenticationProvider authenticationProvider, UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
+    public AuthServiceImpl(EmailService emailService, VerificationTokenRepository tokenRepository, RefreshTokenRepository refreshTokenRepository, JwtService jwtUtil, AuthenticationProvider authenticationProvider, UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
+        this.emailService = emailService;
+        this.tokenRepository = tokenRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.jwtUtil = jwtUtil;
         this.authenticationProvider = authenticationProvider;
@@ -51,6 +61,7 @@ public class AuthServiceImpl implements IAuthService {
         user.setCreateTime(new Date());
         user.setPassword(passwordEncoder.encode(loginRequest.getPassword()));
         user.setRoles(List.of(Role.USER)); // Default role is USER
+        user.setEmail(loginRequest.getEmail());
         return user;
     }
 
@@ -63,9 +74,21 @@ public class AuthServiceImpl implements IAuthService {
         return refreshToken;
     }
 
+    public String generateVerificationToken(User user) {
+        String token = UUID.randomUUID().toString();
+        VerificationToken verificationToken = new VerificationToken();
+        verificationToken.setToken(token);
+        verificationToken.setUser(user);
+        verificationToken.setExpiryDate(LocalDateTime.now().plusHours(24));
+        tokenRepository.save(verificationToken);
+        return verificationToken.getToken();
+    }
+
     @Override
     public DtoUser register(LoginRequest loginRequest) {
         User savedUser = userRepository.save(createUser(loginRequest));
+        String token = generateVerificationToken(savedUser);
+        emailService.sendVerificationEmail(loginRequest.getEmail(),token);
 
         DtoUser dtoUser = new DtoUser();
         BeanUtils.copyProperties(savedUser,dtoUser);

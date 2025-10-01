@@ -13,4 +13,7 @@ public class LoginRequest {
 
     @NotEmpty
     private String password;
+
+    @NotEmpty
+    private String email;
 }

@@ -25,6 +25,12 @@ public class User extends BaseEntity implements UserDetails{
     @Column(name= "username")
     public String username;
 
+    @Column(name = "email",unique = true)
+    private String email;
+
+    @Column(name = "verified")
+    private boolean verified = false;
+
     @Column(name ="password")
     public String password;
 
