@@ -10,6 +10,8 @@ public class DtoUser {
 
     private String password;
 
+    private String email;
+
     private Role role ;
 
 }

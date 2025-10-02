@@ -11,4 +11,6 @@ public interface IAuthController {
     RootEntity<DtoUser> register(LoginRequest loginRequest);
 
     RootEntity<AuthResponse> login(AuthRequest input);
+
+    RootEntity<String> verifyUser(String token);
 }

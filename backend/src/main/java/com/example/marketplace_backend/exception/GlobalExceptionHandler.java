@@ -17,7 +17,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(value = BaseException.class)
     public ResponseEntity<ApiError<String>> handleBaseException(BaseException ex, WebRequest request){
-        return ResponseEntity.badRequest().body(createApiError(ex.getMessage(), request));
+        MessageType status = ex.getStatus();
+
+        return ResponseEntity
+                .status(status.getHttpStatus())
+                .body(createApiError(status.getMessage(),request,status.getCode()));
     }
 
     @ExceptionHandler(value = MethodArgumentNotValidException.class )
@@ -31,7 +35,7 @@ public class GlobalExceptionHandler {
                 map.put(fieldName, addValue(new ArrayList<>(), objError.getDefaultMessage()));
             }
         }
-        return ResponseEntity.badRequest().body(createApiError(map,request));
+        return ResponseEntity.badRequest().body(createApiError(map,request,HttpStatus.BAD_REQUEST.value()));
     }
 
     private List<String> addValue(List<String> list, String newValue){
@@ -47,9 +51,9 @@ public class GlobalExceptionHandler {
         }return "";
     }
 
-    public <E> ApiError<E> createApiError(E message, WebRequest request) {
+    public <E> ApiError<E> createApiError(E message, WebRequest request,Integer status) {
         ApiError<E> apiError = new ApiError<>();
-        apiError.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        apiError.setStatus(status);
 
         Exception<E> exception = new Exception<>();
         exception.setPath(request.getDescription(false));
