@@ -15,6 +15,7 @@ import com.example.marketplace_backend.user.repository.UserRepository;
 import com.example.marketplace_backend.user.repository.VerificationTokenRepository;
 import com.example.marketplace_backend.user.service.IAuthService;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +23,7 @@ import java.time.LocalDateTime;
 
 import static com.example.marketplace_backend.common.model.RootEntity.ok;
 
+@Slf4j
 @RestController
 public class AuthControllerImpl implements IAuthController {
 
@@ -37,25 +39,28 @@ public class AuthControllerImpl implements IAuthController {
         this.userRepository = userRepository;
     }
 
-    @PostMapping("/register")
+    @PostMapping("${api.auth.register}")
     @Override
     public RootEntity<DtoUser> register(@Valid @RequestBody LoginRequest loginRequest) {
+        log.warn("Inside register controller");
+        log.warn("Registration attempt for user: {}", loginRequest.getUsername());
         return ok(authService.register(loginRequest));
     }
 
-    @PostMapping("/login")
+    @PostMapping("${api.auth.login}")
     @Override
     public RootEntity<AuthResponse> login(@Valid @RequestBody AuthRequest input) {
+        log.warn("Login attempt for user: {}", input.getEmail());
         return ok(authService.login(input));
     }
 
-    @GetMapping("/verify")
+    @GetMapping("${api.auth.verify}")
     @Override
     public RootEntity<String> verifyUser(@RequestParam("token") String token) {
         VerificationToken verificationToken = tokenRepository.findByToken(token).orElseThrow(() -> new RuntimeException("Invalid token"));
 
         if (verificationToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-            throw new BaseException(new ErrorMessage(MessageType.Token_Expired,"Verification token has expired"));
+            throw new BaseException(new ErrorMessage(MessageType.TOKEN_EXPIRED,"Verification token has expired"));
         }
 
         User user = verificationToken.getUser();

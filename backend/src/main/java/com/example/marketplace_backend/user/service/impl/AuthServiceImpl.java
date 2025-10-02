@@ -17,17 +17,26 @@ import com.example.marketplace_backend.user.repository.RefreshTokenRepository;
 import com.example.marketplace_backend.user.repository.UserRepository;
 import com.example.marketplace_backend.user.repository.VerificationTokenRepository;
 import com.example.marketplace_backend.user.service.IAuthService;
+import jakarta.mail.MessagingException;
+import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.BeansException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class AuthServiceImpl implements IAuthService {
 
@@ -86,32 +95,52 @@ public class AuthServiceImpl implements IAuthService {
 
     @Override
     public DtoUser register(LoginRequest loginRequest) {
-        User savedUser = userRepository.save(createUser(loginRequest));
-        String token = generateVerificationToken(savedUser);
-        emailService.sendVerificationEmail(loginRequest.getEmail(),token);
+        try {
+            if (userRepository.findByEmail(loginRequest.getEmail()).isPresent()) {
+                throw new BaseException(new ErrorMessage(MessageType.EMAIL_ALREADY_EXISTS, "Bu e-posta adresi zaten kayıtlı: " + loginRequest.getEmail()));
+            } else if (userRepository.findByPassword(passwordEncoder.encode(loginRequest.getPassword())).isPresent()) {
+                throw new BaseException(new ErrorMessage(MessageType.PASSWORD_ALREADY_EXISTS, "Bu şifre zaten kullanılıyor."));
+            }
 
-        DtoUser dtoUser = new DtoUser();
-        BeanUtils.copyProperties(savedUser,dtoUser);
-        dtoUser.setRole(savedUser.getRoles().getFirst());
-        return dtoUser;
+            User savedUser = userRepository.save(createUser(loginRequest));
+            String token = generateVerificationToken(savedUser);
+            emailService.sendVerificationEmail(loginRequest.getEmail(),token);
+
+            DtoUser dtoUser = new DtoUser();
+            BeanUtils.copyProperties(savedUser,dtoUser);
+            dtoUser.setRole(savedUser.getRoles().getFirst());
+            return dtoUser;
+        }
+        catch (DataAccessException e) {
+            throw new BaseException(new ErrorMessage(MessageType.DATABASE_ACCESS_ERROR, "Veritabanı hatası oluştu"));
+        }
     }
 
     @Override
     public AuthResponse login(AuthRequest input) {
-        try{
+        try {
+            log.warn("Attempting to authenticate user: {}", input.getEmail());
+            User user = userRepository.findByEmail(input.getEmail()).orElseThrow(() -> new BaseException(new ErrorMessage(MessageType.EMAIL_NOT_FOUND, "User not found with email: " + input.getEmail())));
+            log.warn("User found: {} , {}", user.getEmail(), user.getUsername());
+
+            if (!user.isVerified()){
+                throw new BaseException(new ErrorMessage(MessageType.USER_NOT_VERIFIED ,"Email not verified for user: " + input.getEmail()));
+            }
+
             UsernamePasswordAuthenticationToken authenticationToken =
-                    new UsernamePasswordAuthenticationToken(input.getUsername(), input.getPassword());
+                    new UsernamePasswordAuthenticationToken(user.getUsername(), input.getPassword());
             authenticationProvider.authenticate(authenticationToken);
 
-            User user = userRepository.findByUsername(input.getUsername()).orElseThrow(() -> new BaseException(new ErrorMessage(MessageType.No_Record_Exist,"User not found : "+input.getUsername())));
+            log.warn("Authentication successful for user: {}", input.getEmail());
 
             String accessToken = jwtUtil.generateToken(user);
             RefreshToken savedRefreshToken = refreshTokenRepository.save(createRefreshToken(user));
 
-            return new AuthResponse(accessToken,savedRefreshToken.getRefreshToken());
-
-        }catch (Exception e){
-            throw new BaseException(new ErrorMessage(MessageType.Authentication_Error,"Authentication failed for user: "+input.getUsername()));
+            return new AuthResponse(accessToken, savedRefreshToken.getRefreshToken());
+        } catch (AuthenticationException e) {
+            throw new BaseException(new ErrorMessage(MessageType.USERNAME_OR_PASSWORD_INVALID, "Invalid username or password"));
+        }catch (DataAccessException e) {
+            throw new BaseException(new ErrorMessage(MessageType.DATABASE_ACCESS_ERROR, "Database error occurred"));
         }
     }
 }
