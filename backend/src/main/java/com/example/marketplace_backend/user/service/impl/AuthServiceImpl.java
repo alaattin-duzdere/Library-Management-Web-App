@@ -98,10 +98,7 @@ public class AuthServiceImpl implements IAuthService {
         try {
             if (userRepository.findByEmail(loginRequest.getEmail()).isPresent()) {
                 throw new BaseException(new ErrorMessage(MessageType.EMAIL_ALREADY_EXISTS, "Bu e-posta adresi zaten kayıtlı: " + loginRequest.getEmail()));
-            } else if (userRepository.findByPassword(passwordEncoder.encode(loginRequest.getPassword())).isPresent()) {
-                throw new BaseException(new ErrorMessage(MessageType.PASSWORD_ALREADY_EXISTS, "Bu şifre zaten kullanılıyor."));
             }
-
             User savedUser = userRepository.save(createUser(loginRequest));
             String token = generateVerificationToken(savedUser);
             emailService.sendVerificationEmail(loginRequest.getEmail(),token);
@@ -122,6 +119,7 @@ public class AuthServiceImpl implements IAuthService {
             log.warn("Attempting to authenticate user: {}", input.getEmail());
             User user = userRepository.findByEmail(input.getEmail()).orElseThrow(() -> new BaseException(new ErrorMessage(MessageType.EMAIL_NOT_FOUND, "User not found with email: " + input.getEmail())));
             log.warn("User found: {} , {}", user.getEmail(), user.getUsername());
+            log.warn("Password {}",passwordEncoder.matches(input.getPassword(),user.getPassword()));
 
             if (!user.isVerified()){
                 throw new BaseException(new ErrorMessage(MessageType.USER_NOT_VERIFIED ,"Email not verified for user: " + input.getEmail()));
