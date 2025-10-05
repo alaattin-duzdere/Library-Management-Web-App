@@ -9,6 +9,7 @@ public enum MessageType {
     RECORD_NOT_FOUND(HttpStatus.NOT_FOUND, 1004, "kayıt bulunamadı"),
     EMAIL_NOT_FOUND(HttpStatus.NOT_FOUND, 1001, "email bulunamadı"),
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, 1002, "email zaten kayıtlı"),
+    EMAIL_NOT_VERIFIED(HttpStatus.FORBIDDEN, 1011, "email doğrulanmamış, lütfen emailinizin gelen kutusunu kontrol ediniz"),
     PASSWORD_ALREADY_EXISTS(HttpStatus.CONFLICT, 1003, "bu şifre zaten kullanılıyor"),
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, 1005, "token süresi dolmuş"),
     USERNAME_NOT_FOUND(HttpStatus.NOT_FOUND, 1006, "kullanıcı adı bulunamadı"),
