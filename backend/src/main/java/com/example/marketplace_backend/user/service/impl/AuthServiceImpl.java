@@ -84,6 +84,9 @@ public class AuthServiceImpl implements IAuthService {
     }
 
     public String generateVerificationToken(User user) {
+        if (tokenRepository.findByUserId(user.getId()).isPresent()){
+            return tokenRepository.findByUserId(user.getId()).get().getToken();
+        }
         String token = UUID.randomUUID().toString();
         VerificationToken verificationToken = new VerificationToken();
         verificationToken.setToken(token);
@@ -97,6 +100,11 @@ public class AuthServiceImpl implements IAuthService {
     public DtoUser register(LoginRequest loginRequest) {
         try {
             if (userRepository.findByEmail(loginRequest.getEmail()).isPresent()) {
+                User user = userRepository.findByEmail(loginRequest.getEmail()).get();
+                if (!user.isVerified()){
+                    emailService.sendVerificationEmail(loginRequest.getEmail(),generateVerificationToken(user));
+                    throw new BaseException(new ErrorMessage(MessageType.EMAIL_NOT_VERIFIED, "Bu e-posta adresi doğrulanmamış: " + loginRequest.getEmail()));
+                }
                 throw new BaseException(new ErrorMessage(MessageType.EMAIL_ALREADY_EXISTS, "Bu e-posta adresi zaten kayıtlı: " + loginRequest.getEmail()));
             }
             User savedUser = userRepository.save(createUser(loginRequest));
