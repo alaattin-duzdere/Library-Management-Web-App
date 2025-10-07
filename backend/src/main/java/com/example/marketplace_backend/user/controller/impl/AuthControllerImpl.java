@@ -5,10 +5,7 @@ import com.example.marketplace_backend.exception.BaseException;
 import com.example.marketplace_backend.exception.ErrorMessage;
 import com.example.marketplace_backend.exception.MessageType;
 import com.example.marketplace_backend.user.controller.IAuthController;
-import com.example.marketplace_backend.user.dto.AuthRequest;
-import com.example.marketplace_backend.user.dto.AuthResponse;
-import com.example.marketplace_backend.user.dto.DtoUser;
-import com.example.marketplace_backend.user.dto.LoginRequest;
+import com.example.marketplace_backend.user.dto.*;
 import com.example.marketplace_backend.user.model.User;
 import com.example.marketplace_backend.user.model.VerificationToken;
 import com.example.marketplace_backend.user.repository.UserRepository;
@@ -54,6 +51,12 @@ public class AuthControllerImpl implements IAuthController {
         return ok(authService.login(input));
     }
 
+    @PostMapping("${api.auth.refresh}")
+    @Override
+    public RootEntity<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest input) {
+        return ok(authService.refreshToken(input));
+    }
+
     @GetMapping("${api.auth.verify}")
     @Override
     public RootEntity<String> verifyUser(@RequestParam("token") String token) {
@@ -68,5 +71,23 @@ public class AuthControllerImpl implements IAuthController {
         userRepository.save(user);
 
         return ok("User verified successfully");
+    }
+
+    @PostMapping("${api.auth.forgot-password}")
+    public RootEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest forgotPasswordRequest) {
+        return ok(authService.forgotPassword(forgotPasswordRequest.getEmail()));
+    }
+
+    @GetMapping("${api.auth.reset-password-handle}")
+    @Override
+    public ResponseEntity<Void> handleresetpassword(@RequestParam("token") String token) {
+        return authService.handleResetPassword(token);
+    }
+
+    @Override
+    @PostMapping("${api.auth.reset-password-submit}")
+    public RootEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest resetPasswordRequest) {
+        log.warn("Input for /api/auth/reset-password-submit" + resetPasswordRequest);
+        return ok(authService.resetPassword(resetPasswordRequest));
     }
 }

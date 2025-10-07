@@ -20,6 +20,7 @@ public class EmailService {
     public void sendVerificationEmail(String to, String token) {
         try {
             log.warn("Sending verification email to: " + to);
+
             String subject = "Verify your account";
             String url = "http://localhost:8080/api/auth/verify?token=" + token;
             String message = "Click the link to verify your account: " + url;
@@ -32,6 +33,25 @@ public class EmailService {
             mailSender.send(mailMessage);
         } catch (MailException e) {
             throw new BaseException(new ErrorMessage(MessageType.RECORD_NOT_FOUND,"Failed to send verification email"));
+        }
+    }
+
+    public void sendPasswordResetEmail(String to, String token) {
+        try {
+            log.warn("Sending password reset email to: " + to);
+
+            String subject = "Reset your password";
+            String url = "http://10.155.186.105:8080/api/auth/reset-password-handle?token=" + token;
+            String message = "Click the link to reset your password: " + url;
+
+            SimpleMailMessage mailMessage = new SimpleMailMessage();
+            mailMessage.setTo(to);
+            mailMessage.setSubject(subject);
+            mailMessage.setText(message);
+
+            mailSender.send(mailMessage);
+        } catch (Exception e) {
+            throw new BaseException(new ErrorMessage(MessageType.EMAIL_SEND_ERROR,"Failed to send password reset email"));
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.example.marketplace_backend.security;
 
+import com.example.marketplace_backend.user.model.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
@@ -17,7 +18,7 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    public static final String SECRET_KEY = "rWwQOOZMkONRJon+GjwWPN2XtScgqevZJtjU9biNzFo=";
+    private static final String SECRET_KEY = "rWwQOOZMkONRJon+GjwWPN2XtScgqevZJtjU9biNzFo=";
 
     public String generateToken(UserDetails userDetails) {
         List<String> authorities = userDetails.getAuthorities()
@@ -25,8 +26,12 @@ public class JwtService {
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
+        if(!(userDetails instanceof User user)) {
+            throw new IllegalArgumentException("UserDetails must be an instance of User");
+        }
+
         return Jwts.builder()
-                .setSubject(userDetails.getUsername())
+                .setSubject(user.getId().toString())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 24 hours
                 .claim("authorities", userDetails.getAuthorities().stream()
@@ -54,7 +59,7 @@ public class JwtService {
                 .getBody();
     }
 
-    public String getUsernameByToken(String token){
+    public String getUserIdByToken(String token){
         return exportToken(token, Claims::getSubject);
     }
 

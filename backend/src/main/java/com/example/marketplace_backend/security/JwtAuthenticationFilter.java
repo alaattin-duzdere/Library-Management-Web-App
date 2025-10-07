@@ -23,9 +23,9 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
+    private final CustomUserDetailsService userDetailsService;
 
-    public JwtAuthenticationFilter(JwtService jwtService, UserDetailsService userDetailsService) {
+    public JwtAuthenticationFilter(JwtService jwtService, CustomUserDetailsService userDetailsService) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
     }
@@ -38,15 +38,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request,response);
             return;
         }
-        String token ;
-        String username;
+        String token;
+        String userId;
 
         token = header.substring(7);
 
         try{
-            username = jwtService.getUsernameByToken(token);
-            if(username!=null || SecurityContextHolder.getContext().getAuthentication()==null){
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            userId = jwtService.getUserIdByToken(token);
+            if(userId!=null && SecurityContextHolder.getContext().getAuthentication()==null){
+                UserDetails userDetails = userDetailsService.loadUserByUsername(userId);
+                logger.info("UserDetails loaded: " + userDetails);
                 if (userDetails != null || jwtService.isTokenValid(token)) {
                     @SuppressWarnings("unchecked")
                     List<String> roles = jwtService.exportToken(token, claims -> claims.get("authorities", List.class));
@@ -56,10 +57,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             .toList();
 
                     UsernamePasswordAuthenticationToken authenticationToken =
-                            new UsernamePasswordAuthenticationToken(username, null, authorities);
+                            new UsernamePasswordAuthenticationToken(userId, null, authorities);
                     authenticationToken.setDetails(userDetails);
                     SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-                    logger.info("User authenticated: " + username);
+                    logger.info("User authenticated: " + userId);
                     logger.info("User has authority: " + authenticationToken.getAuthorities());
                 }
             }

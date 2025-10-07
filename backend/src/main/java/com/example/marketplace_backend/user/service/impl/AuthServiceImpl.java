@@ -6,10 +6,7 @@ import com.example.marketplace_backend.exception.BaseException;
 import com.example.marketplace_backend.exception.ErrorMessage;
 import com.example.marketplace_backend.exception.MessageType;
 import com.example.marketplace_backend.security.JwtService;
-import com.example.marketplace_backend.user.dto.AuthRequest;
-import com.example.marketplace_backend.user.dto.AuthResponse;
-import com.example.marketplace_backend.user.dto.DtoUser;
-import com.example.marketplace_backend.user.dto.LoginRequest;
+import com.example.marketplace_backend.user.dto.*;
 import com.example.marketplace_backend.user.model.RefreshToken;
 import com.example.marketplace_backend.user.model.User;
 import com.example.marketplace_backend.user.model.VerificationToken;
@@ -17,23 +14,20 @@ import com.example.marketplace_backend.user.repository.RefreshTokenRepository;
 import com.example.marketplace_backend.user.repository.UserRepository;
 import com.example.marketplace_backend.user.repository.VerificationTokenRepository;
 import com.example.marketplace_backend.user.service.IAuthService;
-import jakarta.mail.MessagingException;
-import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.BeansException;
 import org.springframework.dao.DataAccessException;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -83,9 +77,10 @@ public class AuthServiceImpl implements IAuthService {
         return refreshToken;
     }
 
-    public String generateVerificationToken(User user) {
-        if (tokenRepository.findByUserId(user.getId()).isPresent()){
-            return tokenRepository.findByUserId(user.getId()).get().getToken();
+    private String generateVerificationToken(User user) {
+        Optional<VerificationToken> existingToken = tokenRepository.findByUserId(user.getId());
+        if (existingToken.isPresent()) {
+            return existingToken.get().getToken();
         }
         String token = UUID.randomUUID().toString();
         VerificationToken verificationToken = new VerificationToken();
@@ -149,4 +144,84 @@ public class AuthServiceImpl implements IAuthService {
             throw new BaseException(new ErrorMessage(MessageType.DATABASE_ACCESS_ERROR, "Database error occurred"));
         }
     }
+
+    private boolean isValidRefreshToken(Date expiredDate) {
+        return new Date().before(expiredDate);
+    }
+
+    @Override
+    public AuthResponse refreshToken(RefreshTokenRequest input) {
+        Optional<RefreshToken> optRefreshToken = refreshTokenRepository.findByRefreshToken(input.getRefreshToken());
+
+        if (optRefreshToken.isEmpty()) {
+            throw new BaseException(new ErrorMessage(MessageType.REFRESH_TOKEN_INVALID,input.getRefreshToken()));
+        }
+        if (!isValidRefreshToken(optRefreshToken.get().getExpiredDate())){
+            throw new BaseException(new ErrorMessage(MessageType.REFRESH_TOKEN_EXPIRED,input.getRefreshToken()));
+        }
+
+        User user = optRefreshToken.get().getUser();
+        String accessToken = jwtUtil.generateToken(user);
+        RefreshToken refreshToken = createRefreshToken(user);
+        RefreshToken savedRefreshToken= refreshTokenRepository.save(refreshToken);
+
+        return new AuthResponse(accessToken, savedRefreshToken.getRefreshToken());
+    }
+
+    private String createPasswordResetToken(String email) {
+        log.info("Creating password reset jwt for email: {}", email);
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new BaseException(new ErrorMessage(MessageType.EMAIL_NOT_FOUND, "User not found with email: " + email)));
+
+        return jwtUtil.generateToken(user);
+    }
+
+    @Override
+    public String forgotPassword(String email) {
+        String token = createPasswordResetToken(email);
+        emailService.sendPasswordResetEmail(email, token);
+        return "Password reset email sent to " + email;
+    }
+
+    @Override
+    public ResponseEntity<Void> handleResetPassword(String token) {
+        String userIdByToken = jwtUtil.getUserIdByToken(token);
+        if (userIdByToken == null) {
+            String redirectUrl = "http://10.155.186.94:3000/reset-password";
+            return ResponseEntity.status(302).header("Location", redirectUrl).build();
+        }
+        log.warn("Token is valid, redirecting to frontend reset password page");
+        String redirectUrl = "http://10.155.186.94:3000/reset-password?token=" + token;
+
+        return ResponseEntity.status(302).header("Location", redirectUrl).build();
+    }
+
+    @Override // submit
+    public String resetPassword(ResetPasswordRequest resetPasswordRequest) {
+        log.warn("Resetting password for this request: {}", resetPasswordRequest);
+
+        String userId= jwtUtil.getUserIdByToken(resetPasswordRequest.getToken());
+
+        // Token geçerliliğini kontrol et
+        if (userId == null) {
+            throw new BaseException(new ErrorMessage(MessageType.TOKEN_INVALID,"Invalid password reset token"));
+        }
+        if (!jwtUtil.isTokenValid(resetPasswordRequest.getToken())) {
+            throw new BaseException(new ErrorMessage(MessageType.TOKEN_EXPIRED,"Password reset token has expired"));
+        }
+
+        // Yeni şifre ve onay şifresinin eşleştiğini kontrol et
+        if (!resetPasswordRequest.getNewPassword().equals(resetPasswordRequest.getConfirmNewPassword())){
+            throw new BaseException(new ErrorMessage(MessageType.PASSWORDS_DO_NOT_MATCH,"Password do not match"));
+        }
+
+        User user = userRepository.findById(Long.parseLong(userId)).orElseThrow(() -> new BaseException(new ErrorMessage(MessageType.USER_NOT_FOUND,"User not found with id: " + userId)));
+
+        // Şifreyi güncelle
+        user.setPassword(passwordEncoder.encode(resetPasswordRequest.getNewPassword()));
+
+        userRepository.save(user);
+        log.warn("Password updated successfully : {}" ,resetPasswordRequest.getNewPassword() + " for user: " + user.getEmail());
+        return "Password reset successful";
+    }
+
 }

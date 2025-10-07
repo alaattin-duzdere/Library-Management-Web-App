@@ -23,7 +23,7 @@ import java.util.List;
 public class User extends BaseEntity implements UserDetails{
 
     @Column(name= "username")
-    public String username;
+    private String username;
 
     @Column(name = "email",unique = true)
     private String email;
@@ -32,7 +32,7 @@ public class User extends BaseEntity implements UserDetails{
     private boolean verified = false;
 
     @Column(name ="password")
-    public String password;
+    private String password;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @Enumerated(EnumType.STRING)
@@ -48,5 +48,10 @@ public class User extends BaseEntity implements UserDetails{
         return roles.stream()
                 .map(role -> new SimpleGrantedAuthority(role.name()))
                 .toList();
+    }
+
+    @Override
+    public Long getId() {
+        return super.getId();
     }
 }
