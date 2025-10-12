@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.example</groupId>
-	<artifactId>marketplace-backend</artifactId>
+	<artifactId>library-management</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>marketplace-backend</name>
 	<description>Demo project for Spring Boot</description>
