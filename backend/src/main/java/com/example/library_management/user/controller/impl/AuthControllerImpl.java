@@ -1,9 +1,9 @@
 package com.example.library_management.user.controller.impl;
 
-import com.example.library_management.common.model.RootEntity;
-import com.example.library_management.exception.BaseException;
-import com.example.library_management.exception.ErrorMessage;
-import com.example.library_management.exception.MessageType;
+
+import com.example.library_management.api.CustomResponseBody;
+import com.example.library_management.exceptions.auth.ExpiredTokenException;
+import com.example.library_management.exceptions.auth.InvalidTokenException;
 import com.example.library_management.user.controller.IAuthController;
 import com.example.library_management.user.dto.*;
 import com.example.library_management.user.model.User;
@@ -13,12 +13,11 @@ import com.example.library_management.user.repository.VerificationTokenRepositor
 import com.example.library_management.user.service.IAuthService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-
-import static com.example.library_management.common.model.RootEntity.ok;
 
 @Slf4j
 @RestController
@@ -38,44 +37,49 @@ public class AuthControllerImpl implements IAuthController {
 
     @PostMapping("${api.auth.register}")
     @Override
-    public RootEntity<DtoUser> register(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<CustomResponseBody<DtoUser>> register(@Valid @RequestBody RegisterRequest registerRequest) {
         log.warn("Inside register controller");
-        log.warn("Registration attempt for user: {}", loginRequest.getUsername());
-        return ok(authService.register(loginRequest));
+        log.warn("Registration attempt for user: {}", registerRequest.getUsername());
+        CustomResponseBody<DtoUser> body = CustomResponseBody.ok(authService.register(registerRequest), "User registered successfully. Please check your email for verification instructions.");
+        return new ResponseEntity<>(body,HttpStatusCode.valueOf(body.getHttpStatus()));
     }
 
     @PostMapping("${api.auth.login}")
     @Override
-    public RootEntity<AuthResponse> login(@Valid @RequestBody AuthRequest input) {
+    public ResponseEntity<CustomResponseBody<LoginResponse>> login(@Valid @RequestBody LoginRequest input) {
         log.warn("Login attempt for user: {}", input.getEmail());
-        return ok(authService.login(input));
+        CustomResponseBody<LoginResponse> body = CustomResponseBody.ok(authService.login(input), "Login successful");
+        return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
     }
 
     @PostMapping("${api.auth.refresh}")
     @Override
-    public RootEntity<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest input) {
-        return ok(authService.refreshToken(input));
+    public ResponseEntity<CustomResponseBody<LoginResponse>> refreshToken(@Valid @RequestBody RefreshTokenRequest input) {
+        CustomResponseBody<LoginResponse> body = CustomResponseBody.ok(authService.refreshToken(input),"Token refreshed successfully");
+        return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
     }
 
     @GetMapping("${api.auth.verify}")
     @Override
-    public RootEntity<String> verifyUser(@RequestParam("token") String token) {
-        VerificationToken verificationToken = tokenRepository.findByToken(token).orElseThrow(() -> new RuntimeException("Invalid token"));
+    public ResponseEntity<CustomResponseBody<String>> verifyUser(@RequestParam("token") String token) {
+        VerificationToken verificationToken = tokenRepository.findByToken(token).orElseThrow(() -> new InvalidTokenException("Invalid verification token"));
 
         if (verificationToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-            throw new BaseException(new ErrorMessage(MessageType.TOKEN_EXPIRED,"Verification token has expired"));
+            throw new ExpiredTokenException("Verification token has expired");
         }
 
         User user = verificationToken.getUser();
         user.setVerified(true);
         userRepository.save(user);
 
-        return ok("User verified successfully");
+        CustomResponseBody<String> body = CustomResponseBody.ok("User verified successfully", "User verified successfully");
+        return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
     }
 
     @PostMapping("${api.auth.forgot-password}")
-    public RootEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest forgotPasswordRequest) {
-        return ok(authService.forgotPassword(forgotPasswordRequest.getEmail()));
+    public ResponseEntity<CustomResponseBody<String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest forgotPasswordRequest) {
+        CustomResponseBody<String> body = CustomResponseBody.ok(authService.forgotPassword(forgotPasswordRequest.getEmail()), "Password reset instructions sent to email if it exists in our system");
+        return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
     }
 
     @GetMapping("${api.auth.reset-password-handle}")
@@ -86,8 +90,9 @@ public class AuthControllerImpl implements IAuthController {
 
     @Override
     @PostMapping("${api.auth.reset-password-submit}")
-    public RootEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest resetPasswordRequest) {
+    public ResponseEntity<CustomResponseBody<String>> resetPassword(@Valid @RequestBody ResetPasswordRequest resetPasswordRequest) {
         log.warn("Input for /api/auth/reset-password-submit" + resetPasswordRequest);
-        return ok(authService.resetPassword(resetPasswordRequest));
+        CustomResponseBody<String> body = CustomResponseBody.ok(authService.resetPassword(resetPasswordRequest), "Password has been reset successfully");
+        return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
     }
 }

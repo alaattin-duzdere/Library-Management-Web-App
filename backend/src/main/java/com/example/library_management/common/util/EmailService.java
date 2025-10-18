@@ -1,8 +1,6 @@
 package com.example.library_management.common.util;
 
-import com.example.library_management.exception.BaseException;
-import com.example.library_management.exception.ErrorMessage;
-import com.example.library_management.exception.MessageType;
+import com.example.library_management.exceptions.server.EmailServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.MailException;
@@ -32,7 +30,7 @@ public class EmailService {
 
             mailSender.send(mailMessage);
         } catch (MailException e) {
-            throw new BaseException(new ErrorMessage(MessageType.RECORD_NOT_FOUND,"Failed to send verification email"));
+            throw new EmailServiceException("Failed to send verification email", e);
         }
     }
 
@@ -41,7 +39,7 @@ public class EmailService {
             log.warn("Sending password reset email to: " + to);
 
             String subject = "Reset your password";
-            String url = "http://10.155.186.105:8080/api/auth/reset-password-handle?token=" + token;
+            String url = "http://localhost:8080/api/auth/reset-password-handle?token=" + token;
             String message = "Click the link to reset your password: " + url;
 
             SimpleMailMessage mailMessage = new SimpleMailMessage();
@@ -51,7 +49,7 @@ public class EmailService {
 
             mailSender.send(mailMessage);
         } catch (Exception e) {
-            throw new BaseException(new ErrorMessage(MessageType.EMAIL_SEND_ERROR,"Failed to send password reset email"));
+            throw new EmailServiceException("Failed to send password reset email", e);
         }
     }
 }

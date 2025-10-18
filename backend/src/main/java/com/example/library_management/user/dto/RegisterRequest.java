@@ -1,20 +1,23 @@
 package com.example.library_management.user.dto;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
-public class ResetPasswordRequest {
+@Getter
+@Setter
+public class RegisterRequest {
 
     @NotEmpty
-    private String token;
-
-    @NotEmpty
-    @Size(min = 8, max = 64, message = "Şifre en az 8 karakter olmalıdır")
-    private String newPassword;
+    private String username;
 
     @NotEmpty
     @Size(min = 8, max = 64, message = "Şifre en az 8 karakter olmalıdır")
-    private String confirmNewPassword;
+    private String password;
+
+    @NotEmpty
+    @Email
+    private String email;
 }

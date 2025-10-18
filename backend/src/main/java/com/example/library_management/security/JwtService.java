@@ -1,14 +1,12 @@
 package com.example.library_management.security;
 
 import com.example.library_management.user.model.User;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
-import io.jsonwebtoken.Jwts;
 
 import java.security.Key;
 import java.util.Date;
@@ -59,7 +57,7 @@ public class JwtService {
                 .getBody();
     }
 
-    public String getUserIdByToken(String token){
+    public String getUserIdByToken(String token)throws ExpiredJwtException, MalformedJwtException, SignatureException{
         return exportToken(token, Claims::getSubject);
     }
 

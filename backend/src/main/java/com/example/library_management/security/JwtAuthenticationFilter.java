@@ -1,8 +1,6 @@
 package com.example.library_management.security;
 
-import com.example.library_management.exception.BaseException;
-import com.example.library_management.exception.ErrorMessage;
-import com.example.library_management.exception.MessageType;
+import com.example.library_management.exceptions.auth.ExpiredTokenException;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -16,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.rmi.ServerException;
 import java.util.List;
 
 @Component
@@ -65,10 +64,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
         catch (ExpiredJwtException ex){
-            throw new BaseException(new ErrorMessage(MessageType.TOKEN_EXPIRED,ex.getMessage()));
+            throw new ExpiredTokenException("JWT token has expired");
         }
         catch (Exception e){
-            throw new BaseException(new ErrorMessage(MessageType.GENERAL_EXCEPTION,e.getMessage()));
+            throw new ServerException("Internal server error during JWT processing",e);
         }
         filterChain.doFilter(request, response);
     }
