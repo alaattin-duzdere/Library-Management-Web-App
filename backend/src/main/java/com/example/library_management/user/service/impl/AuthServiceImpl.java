@@ -2,9 +2,14 @@ package com.example.library_management.user.service.impl;
 
 import com.example.library_management.common.enums.Role;
 import com.example.library_management.common.util.EmailService;
-import com.example.library_management.exception.BaseException;
-import com.example.library_management.exception.ErrorMessage;
-import com.example.library_management.exception.MessageType;
+import com.example.library_management.exceptions.auth.ExpiredTokenException;
+import com.example.library_management.exceptions.auth.InvalidCredentialsException;
+import com.example.library_management.exceptions.auth.InvalidTokenException;
+import com.example.library_management.exceptions.auth.UserNotVerifiedException;
+import com.example.library_management.exceptions.client.ConflictException;
+import com.example.library_management.exceptions.client.ResourceNotFoundException;
+import com.example.library_management.exceptions.client.PasswordMismatchException;
+import com.example.library_management.exceptions.server.DatabaseException;
 import com.example.library_management.security.JwtService;
 import com.example.library_management.user.dto.*;
 import com.example.library_management.user.model.RefreshToken;
@@ -58,13 +63,13 @@ public class AuthServiceImpl implements IAuthService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    private User createUser(LoginRequest loginRequest) {
+    private User createUser(RegisterRequest registerRequest) {
         User user = new User();
-        user.setUsername(loginRequest.getUsername());
+        user.setUsername(registerRequest.getUsername());
         user.setCreateTime(new Date());
-        user.setPassword(passwordEncoder.encode(loginRequest.getPassword()));
+        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         user.setRoles(List.of(Role.USER)); // Default role is USER
-        user.setEmail(loginRequest.getEmail());
+        user.setEmail(registerRequest.getEmail());
         return user;
     }
 
@@ -92,19 +97,19 @@ public class AuthServiceImpl implements IAuthService {
     }
 
     @Override
-    public DtoUser register(LoginRequest loginRequest) {
+    public DtoUser register(RegisterRequest registerRequest) {
         try {
-            if (userRepository.findByEmail(loginRequest.getEmail()).isPresent()) {
-                User user = userRepository.findByEmail(loginRequest.getEmail()).get();
+            if (userRepository.findByEmail(registerRequest.getEmail()).isPresent()) {
+                User user = userRepository.findByEmail(registerRequest.getEmail()).get();
                 if (!user.isVerified()){
-                    emailService.sendVerificationEmail(loginRequest.getEmail(),generateVerificationToken(user));
-                    throw new BaseException(new ErrorMessage(MessageType.EMAIL_NOT_VERIFIED, "Bu e-posta adresi doğrulanmamış: " + loginRequest.getEmail()));
+                    emailService.sendVerificationEmail(registerRequest.getEmail(),generateVerificationToken(user));
+                    throw new UserNotVerifiedException(registerRequest.getEmail());
                 }
-                throw new BaseException(new ErrorMessage(MessageType.EMAIL_ALREADY_EXISTS, "Bu e-posta adresi zaten kayıtlı: " + loginRequest.getEmail()));
+                throw new ConflictException("User","email", registerRequest.getEmail());
             }
-            User savedUser = userRepository.save(createUser(loginRequest));
+            User savedUser = userRepository.save(createUser(registerRequest));
             String token = generateVerificationToken(savedUser);
-            emailService.sendVerificationEmail(loginRequest.getEmail(),token);
+            emailService.sendVerificationEmail(registerRequest.getEmail(),token);
 
             DtoUser dtoUser = new DtoUser();
             BeanUtils.copyProperties(savedUser,dtoUser);
@@ -112,20 +117,23 @@ public class AuthServiceImpl implements IAuthService {
             return dtoUser;
         }
         catch (DataAccessException e) {
-            throw new BaseException(new ErrorMessage(MessageType.DATABASE_ACCESS_ERROR, "Veritabanı hatası oluştu"));
+            throw new DatabaseException("Could not register user due to a database issue.");
         }
     }
 
     @Override
-    public AuthResponse login(AuthRequest input) {
+    public LoginResponse login(LoginRequest input) {
         try {
             log.warn("Attempting to authenticate user: {}", input.getEmail());
-            User user = userRepository.findByEmail(input.getEmail()).orElseThrow(() -> new BaseException(new ErrorMessage(MessageType.EMAIL_NOT_FOUND, "User not found with email: " + input.getEmail())));
+            User user = userRepository.findByEmail(input.getEmail()).orElseThrow(() -> new ResourceNotFoundException("User","email",input.getEmail()));
             log.warn("User found: {} , {}", user.getEmail(), user.getUsername());
             log.warn("Password {}",passwordEncoder.matches(input.getPassword(),user.getPassword()));
 
+            if (!passwordEncoder.matches(input.getPassword(),user.getPassword())){
+                throw new InvalidCredentialsException();
+            }
             if (!user.isVerified()){
-                throw new BaseException(new ErrorMessage(MessageType.USER_NOT_VERIFIED ,"Email not verified for user: " + input.getEmail()));
+                throw new UserNotVerifiedException(input.getEmail());
             }
 
             UsernamePasswordAuthenticationToken authenticationToken =
@@ -137,11 +145,11 @@ public class AuthServiceImpl implements IAuthService {
             String accessToken = jwtUtil.generateToken(user);
             RefreshToken savedRefreshToken = refreshTokenRepository.save(createRefreshToken(user));
 
-            return new AuthResponse(accessToken, savedRefreshToken.getRefreshToken());
+            return new LoginResponse(accessToken, savedRefreshToken.getRefreshToken());
         } catch (AuthenticationException e) {
-            throw new BaseException(new ErrorMessage(MessageType.USERNAME_OR_PASSWORD_INVALID, "Invalid username or password"));
+            throw new InvalidCredentialsException();
         }catch (DataAccessException e) {
-            throw new BaseException(new ErrorMessage(MessageType.DATABASE_ACCESS_ERROR, "Database error occurred"));
+            throw new DatabaseException("Could not login user due to a database issue.");
         }
     }
 
@@ -150,14 +158,14 @@ public class AuthServiceImpl implements IAuthService {
     }
 
     @Override
-    public AuthResponse refreshToken(RefreshTokenRequest input) {
+    public LoginResponse refreshToken(RefreshTokenRequest input) {
         Optional<RefreshToken> optRefreshToken = refreshTokenRepository.findByRefreshToken(input.getRefreshToken());
 
         if (optRefreshToken.isEmpty()) {
-            throw new BaseException(new ErrorMessage(MessageType.REFRESH_TOKEN_INVALID,input.getRefreshToken()));
+            throw new InvalidTokenException("Refresh token not found: " + input.getRefreshToken());
         }
         if (!isValidRefreshToken(optRefreshToken.get().getExpiredDate())){
-            throw new BaseException(new ErrorMessage(MessageType.REFRESH_TOKEN_EXPIRED,input.getRefreshToken()));
+            throw new ExpiredTokenException("Refresh token has expired: " + input.getRefreshToken());
         }
 
         User user = optRefreshToken.get().getUser();
@@ -165,12 +173,12 @@ public class AuthServiceImpl implements IAuthService {
         RefreshToken refreshToken = createRefreshToken(user);
         RefreshToken savedRefreshToken= refreshTokenRepository.save(refreshToken);
 
-        return new AuthResponse(accessToken, savedRefreshToken.getRefreshToken());
+        return new LoginResponse(accessToken, savedRefreshToken.getRefreshToken());
     }
 
     private String createPasswordResetToken(String email) {
         log.info("Creating password reset jwt for email: {}", email);
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new BaseException(new ErrorMessage(MessageType.EMAIL_NOT_FOUND, "User not found with email: " + email)));
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User","email",email));
 
         return jwtUtil.generateToken(user);
     }
@@ -186,6 +194,7 @@ public class AuthServiceImpl implements IAuthService {
     public ResponseEntity<Void> handleResetPassword(String token) {
         String userIdByToken = jwtUtil.getUserIdByToken(token);
         if (userIdByToken == null) {
+            log.warn("Invalid token, redirecting to frontend reset password page without token");
             String redirectUrl = "http://10.155.186.94:3000/reset-password";
             return ResponseEntity.status(302).header("Location", redirectUrl).build();
         }
@@ -203,18 +212,18 @@ public class AuthServiceImpl implements IAuthService {
 
         // Token geçerliliğini kontrol et
         if (userId == null) {
-            throw new BaseException(new ErrorMessage(MessageType.TOKEN_INVALID,"Invalid password reset token"));
+            throw new InvalidTokenException("Invalid password reset token");
         }
         if (!jwtUtil.isTokenValid(resetPasswordRequest.getToken())) {
-            throw new BaseException(new ErrorMessage(MessageType.TOKEN_EXPIRED,"Password reset token has expired"));
+            throw new ExpiredTokenException("Password reset token has expired");
         }
 
         // Yeni şifre ve onay şifresinin eşleştiğini kontrol et
         if (!resetPasswordRequest.getNewPassword().equals(resetPasswordRequest.getConfirmNewPassword())){
-            throw new BaseException(new ErrorMessage(MessageType.PASSWORDS_DO_NOT_MATCH,"Password do not match"));
+            throw new PasswordMismatchException();
         }
 
-        User user = userRepository.findById(Long.parseLong(userId)).orElseThrow(() -> new BaseException(new ErrorMessage(MessageType.USER_NOT_FOUND,"User not found with id: " + userId)));
+        User user = userRepository.findById(Long.parseLong(userId)).orElseThrow(() -> new ResourceNotFoundException("User","id",userId));
 
         // Şifreyi güncelle
         user.setPassword(passwordEncoder.encode(resetPasswordRequest.getNewPassword()));

@@ -1,22 +1,22 @@
 package com.example.library_management.user.controller;
 
-import com.example.library_management.common.model.RootEntity;
+import com.example.library_management.api.CustomResponseBody;
 import com.example.library_management.user.dto.*;
 import org.springframework.http.ResponseEntity;
 
 public interface IAuthController {
 
-    RootEntity<DtoUser> register(LoginRequest loginRequest);
+    ResponseEntity<CustomResponseBody<DtoUser>> register(RegisterRequest registerRequest);
 
-    RootEntity<AuthResponse> login(AuthRequest input);
+    ResponseEntity<CustomResponseBody<LoginResponse>> login(LoginRequest input);
 
-    RootEntity<AuthResponse> refreshToken(RefreshTokenRequest input);
+    ResponseEntity<CustomResponseBody<LoginResponse>>refreshToken(RefreshTokenRequest input);
 
-    RootEntity<String> verifyUser(String token);
+    ResponseEntity<CustomResponseBody<String>> verifyUser(String token);
 
-    public RootEntity <String> forgotPassword(ForgotPasswordRequest input);
+    public ResponseEntity<CustomResponseBody<String>> forgotPassword(ForgotPasswordRequest input);
 
     public ResponseEntity<Void> handleresetpassword(String email);
 
-    public RootEntity<String> resetPassword(ResetPasswordRequest resetPasswordRequest);
+    public ResponseEntity<CustomResponseBody<String>> resetPassword(ResetPasswordRequest resetPasswordRequest);
 }

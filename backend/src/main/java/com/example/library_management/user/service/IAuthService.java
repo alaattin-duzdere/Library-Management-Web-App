@@ -4,11 +4,11 @@ import com.example.library_management.user.dto.*;
 import org.springframework.http.ResponseEntity;
 
 public interface IAuthService {
-    DtoUser register(LoginRequest loginRequest);
+    DtoUser register(RegisterRequest registerRequest);
 
-    AuthResponse login(AuthRequest input);
+    LoginResponse login(LoginRequest input);
 
-    AuthResponse refreshToken(RefreshTokenRequest input);
+    LoginResponse refreshToken(RefreshTokenRequest input);
 
     String forgotPassword(String email);
 

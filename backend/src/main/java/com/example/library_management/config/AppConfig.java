@@ -1,8 +1,6 @@
 package com.example.library_management.config;
 
-import com.example.library_management.exception.BaseException;
-import com.example.library_management.exception.ErrorMessage;
-import com.example.library_management.exception.MessageType;
+import com.example.library_management.exceptions.client.ResourceNotFoundException;
 import com.example.library_management.user.repository.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,7 +26,7 @@ public class AppConfig {
         return new UserDetailsService() {
             @Override
             public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-                return userRepository.findByUsername(username).orElseThrow(() -> new BaseException(new ErrorMessage(MessageType.USERNAME_NOT_FOUND, ": " + username)));
+                return userRepository.findByUsername(username).orElseThrow(() -> new ResourceNotFoundException("User"," username ", username));
             }
         };
     }
