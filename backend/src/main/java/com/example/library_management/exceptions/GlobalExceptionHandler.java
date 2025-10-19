@@ -1,8 +1,7 @@
-package com.example.library_management.handlers;
+package com.example.library_management.exceptions;
 
 import com.example.library_management.api.ApiStatus;
 import com.example.library_management.api.CustomResponseBody;
-import com.example.library_management.exceptions.BaseApiException;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureException;
