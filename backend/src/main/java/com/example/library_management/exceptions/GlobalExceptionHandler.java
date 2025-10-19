@@ -5,12 +5,16 @@ import com.example.library_management.api.CustomResponseBody;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureException;
+import jogamp.common.util.locks.SingletonInstanceServerSocket;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.servlet.NoHandlerFoundException;
 
 import java.util.stream.Collectors;
 
@@ -88,6 +92,28 @@ public class GlobalExceptionHandler {
         );
         return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
     }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<CustomResponseBody<?>> handleRequestMethodNotSupportedException() {
+        CustomResponseBody<?> body = CustomResponseBody.failure(ApiStatus.ERROR_METHOD_NOT_ALLOWED, "The request method is not supported for this endpoint.");
+        return new ResponseEntity<>(body, HttpStatus.METHOD_NOT_ALLOWED);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<CustomResponseBody<?>> handleHttpMessageNotReadableException() {
+        CustomResponseBody<?> body = CustomResponseBody.failure(ApiStatus.ERROR_BAD_REQUEST, "The request body is malformed or unreadable.");
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public ResponseEntity<CustomResponseBody<?>> handleNoHandlerFoundException() {
+        CustomResponseBody<?> body = CustomResponseBody.failure(ApiStatus.ERROR_NOT_FOUND, "The requested resource was not found.");
+        return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
+    }
+
+    //HttpRequestMethodNotSupportedException
+    //HttpMessageNotReadableException
+    //NoHandlerFoundException
 
     /**
      * Fallback handler for all unexpected exceptions (e.g., NullPointerException).
