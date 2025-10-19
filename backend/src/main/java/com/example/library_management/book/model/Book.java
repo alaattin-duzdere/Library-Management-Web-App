@@ -24,7 +24,7 @@ public class Book extends BaseEntity {
     private String title;
 
     @Column(name="isbn", unique = true)
-    private String isbn;
+    private Long isbn;
 
     @ManyToMany
     private Set<Author> authors = new HashSet<>();
