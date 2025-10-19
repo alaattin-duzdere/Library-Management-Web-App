@@ -40,6 +40,9 @@ public enum ApiStatus {
     // Input/Validation Errors
     ERROR_PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "E400-PWM", "Passwords do not match."),
     ERROR_DATABASE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "E500-DB", "A database error occurred."),
+    ERROR_METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "E405-MTD", "The request method is not supported for this endpoint."),
+    ERROR_BAD_REQUEST(HttpStatus.BAD_REQUEST, "E400-BAD", "The request body is malformed or unreadable."),
+    ERROR_NOT_FOUND(HttpStatus.NOT_FOUND, "E404-NOT", "The requested resource was not found."),
 
     ERROR_CLIENT_GENERAL(HttpStatus.BAD_REQUEST, "E400-GEN", "A general client-side error occurred."),
     ERROR_SERVER_GENERAL(HttpStatus.INTERNAL_SERVER_ERROR, "E500-GEN", "A general server-side error occurred.");
