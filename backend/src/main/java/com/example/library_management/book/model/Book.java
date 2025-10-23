@@ -33,5 +33,10 @@ public class Book extends BaseEntity {
     private Set<Category> categories = new HashSet<>();
 
     @Column(name="number_of_pages")
-    public int numberOfPages;
+    private int numberOfPages;
+
+    @Column(name="situation")
+    @Enumerated(EnumType.STRING)
+    private Situation situation = Situation.AVAILABLE;
+
 }

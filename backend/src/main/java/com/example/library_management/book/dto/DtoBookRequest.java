@@ -25,5 +25,5 @@ public class DtoBookRequest {
 
     @NotNull(message = "numberOfPages is required")
     @Min(value = 1, message = "numberOfPages must be at least 1")
-    public Integer numberOfPages;
+    private Integer numberOfPages;
 }
