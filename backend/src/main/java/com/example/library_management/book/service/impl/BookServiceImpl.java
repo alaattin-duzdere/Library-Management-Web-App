@@ -92,7 +92,7 @@ public class BookServiceImpl implements IBookService {
     @Override
     public List<DtoBookResponse> getAllBooks() {
         List<Book> all = bookRepository.findAll();
-        return all.stream().map(this::createDtoFromBook).toList(); //
+        return all.stream().map(this::createDtoFromBook).toList();
     }
 
     @Override

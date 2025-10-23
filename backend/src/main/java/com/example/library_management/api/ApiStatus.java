@@ -24,6 +24,7 @@ public enum ApiStatus {
     // Authentication/Authorization Errors
     ERROR_UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "E401-AUTH", "Authentication is required or has failed."),
     ERROR_FORBIDDEN(HttpStatus.FORBIDDEN, "E403-AUTH", "You do not have permission to perform this action."),
+    ERROR_USER_NOT_FOUND(HttpStatus.NOT_FOUND, "E404-USER", "The specified user does not exist."),
 
     // --- SERVER ERROR CODES (5xx) ---
     ERROR_INTERNAL_SERVER(HttpStatus.INTERNAL_SERVER_ERROR, "E500-SYS", "An unexpected server error occurred."),

@@ -1,5 +1,6 @@
 package com.example.library_management.book.dto;
 
+import com.example.library_management.book.model.Situation;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -20,5 +21,7 @@ public class DtoBookResponse {
 
     private Set<Long> categories = new HashSet<>();
 
-    public int numberOfPages;
+    private int numberOfPages;
+
+    private Situation situation;
 }
