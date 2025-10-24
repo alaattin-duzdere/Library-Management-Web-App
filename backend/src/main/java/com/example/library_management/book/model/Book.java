@@ -35,6 +35,9 @@ public class Book extends BaseEntity {
     @Column(name="number_of_pages")
     private int numberOfPages;
 
+    @Column(name = "image_url")
+    private String imageUrl;
+
     @Column(name="situation")
     @Enumerated(EnumType.STRING)
     private Situation situation = Situation.AVAILABLE;

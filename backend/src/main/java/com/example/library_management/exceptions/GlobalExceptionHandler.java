@@ -8,6 +8,7 @@ import io.jsonwebtoken.SignatureException;
 import jogamp.common.util.locks.SingletonInstanceServerSocket;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -15,6 +16,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 import java.rmi.ServerException;
@@ -119,9 +121,11 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
     }
 
-    //HttpRequestMethodNotSupportedException
-    //HttpMessageNotReadableException
-    //NoHandlerFoundException
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<CustomResponseBody<?>> handleMacUploadSizeEx(){
+        CustomResponseBody<?> body = CustomResponseBody.failure(ApiStatus.ERROR_PAYLOAD_TOO_LARGE,"The requested body was over to max size");
+        return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
+    }
 
     /**
      * Fallback handler for all unexpected exceptions (e.g., NullPointerException).

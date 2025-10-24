@@ -24,4 +24,6 @@ public class DtoBookResponse {
     private int numberOfPages;
 
     private Situation situation;
+
+    private String imageUrl;
 }

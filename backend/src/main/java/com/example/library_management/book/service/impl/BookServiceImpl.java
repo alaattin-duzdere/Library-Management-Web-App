@@ -9,10 +9,15 @@ import com.example.library_management.book.repository.BookRepository;
 import com.example.library_management.book.service.IBookService;
 import com.example.library_management.category.model.Category;
 import com.example.library_management.category.repository.CategoryRepository;
+import com.example.library_management.common.util.ImageUploadService;
 import com.example.library_management.exceptions.client.ConflictException;
+import com.example.library_management.exceptions.client.InvalidInputException;
 import com.example.library_management.exceptions.client.ResourceNotFoundException;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Date;
 import java.util.HashSet;
@@ -28,11 +33,17 @@ public class BookServiceImpl implements IBookService {
 
     private final CategoryRepository categoryRepository;
 
-    public BookServiceImpl(BookRepository bookRepository, AuthorRepository authorRepository, CategoryRepository categoryRepository) {
+    private final ImageUploadService imageUploadService;
+
+    public BookServiceImpl(BookRepository bookRepository, AuthorRepository authorRepository, CategoryRepository categoryRepository, ImageUploadService imageUploadService) {
         this.bookRepository = bookRepository;
         this.authorRepository = authorRepository;
         this.categoryRepository = categoryRepository;
+        this.imageUploadService = imageUploadService;
     }
+
+    @Value("${app.base-url}")
+    private String baseUrl;
 
     private Book createBookFromDto(DtoBookRequest inputDto) {
         Book book = new Book();
@@ -64,6 +75,10 @@ public class BookServiceImpl implements IBookService {
         Set<Category> categories = book.getCategories();
         categories.forEach(category -> dtoBookResponse.getCategories().add(category.getId()));
 
+        if (!book.getImageUrl().isEmpty()){
+            dtoBookResponse.setImageUrl(baseUrl + dtoBookResponse.getImageUrl());
+        }
+
         return dtoBookResponse;
     }
 
@@ -75,6 +90,17 @@ public class BookServiceImpl implements IBookService {
 
         Book savedBook = bookRepository.save(createBookFromDto(dtoBookRequest));
         return createDtoFromBook(savedBook);
+    }
+
+    @Override
+    public DtoBookResponse uploadPhoto(Long bookId, MultipartFile file) {
+        if (file.isEmpty()){
+            throw new InvalidInputException();
+        }
+        Book book = bookRepository.findById(bookId).orElseThrow(() -> new ResourceNotFoundException("Book", "bookId", bookId));
+        String imageUrl = imageUploadService.saveImage(file);
+        book.setImageUrl(imageUrl);
+        return createDtoFromBook(bookRepository.save(book));
     }
 
     @Override

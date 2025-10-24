@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -26,6 +27,12 @@ public class BookControllerImpl implements IBookController {
     public ResponseEntity<CustomResponseBody<DtoBookResponse>> saveBook(@RequestBody @Valid DtoBookRequest dtoBookRequest) {
         CustomResponseBody<DtoBookResponse> body = CustomResponseBody.ok(bookService.saveBook(dtoBookRequest), "Book created successfully");
         return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
+    }
+
+    @PostMapping("/{bookId}/upload-photo")
+    public ResponseEntity<CustomResponseBody<DtoBookResponse>> uploadPhoto(@PathVariable Long bookId, @RequestParam("file") MultipartFile file) {
+        CustomResponseBody<DtoBookResponse> body = CustomResponseBody.ok(bookService.uploadPhoto(bookId, file), "Image upload successfully");
+        return new ResponseEntity<>(body,HttpStatusCode.valueOf(body.getHttpStatus()));
     }
 
     @GetMapping("/api/books/{bookId}")

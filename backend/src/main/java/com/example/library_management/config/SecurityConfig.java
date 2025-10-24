@@ -69,6 +69,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(request -> request
                         .requestMatchers("/api/auth/reset-password-submit",registerEndpoint,loginEndpoint,refreshEndpoint,verifyEndpoint,forgotPasswordEndpoint, resetPasswordHandlerEndpoint, passwordResetEndpoint).permitAll()
+                        .requestMatchers("/media/images/**").permitAll()
                         .requestMatchers("/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",

@@ -16,6 +16,8 @@ public enum ApiStatus {
     // --- CLIENT ERROR CODES (4xx) ---
     // General Validation/Bad Request
     ERROR_INVALID_INPUT(HttpStatus.BAD_REQUEST, "E400-GEN", "One or more input fields are invalid."),
+    ERROR_PAYLOAD_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE,"UNKNOWN","Payload too large"),
+    ERROR_UNSUPPORTED_FILE_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE,"UNKNOWN","Unsported file type"),
 
     // Resource Errors
     ERROR_RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "E404-RES", "The requested resource was not found."),

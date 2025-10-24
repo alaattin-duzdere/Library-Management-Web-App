@@ -2,12 +2,15 @@ package com.example.library_management.book.service;
 
 import com.example.library_management.book.dto.DtoBookRequest;
 import com.example.library_management.book.dto.DtoBookResponse;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 public interface IBookService {
 
     DtoBookResponse saveBook(DtoBookRequest dtoBookRequest);
+
+    DtoBookResponse uploadPhoto(Long bookId, MultipartFile file);
 
     DtoBookResponse getBookById(Long bookId);
 
