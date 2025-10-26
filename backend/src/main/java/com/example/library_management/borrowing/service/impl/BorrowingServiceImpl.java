@@ -17,12 +17,18 @@ import com.example.library_management.user.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -62,7 +68,6 @@ public class BorrowingServiceImpl implements IBorrowingService {
 
         return dto;
     }
-
     @Override
     public DtoBorrowResponse borrowBook(Long bookId) {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -90,27 +95,26 @@ public class BorrowingServiceImpl implements IBorrowingService {
         throw new ConflictException("Book is not available for borrowing");
     }
 
+    @PostAuthorize("hasPermission(returnObject, 'read')")
     @Override
     public DtoBorrowResponse getBorrowingDetails(Long borrowingId) {
         Borrowing borrowing = borrowingRepository.findById(borrowingId).orElseThrow(() -> new ResourceNotFoundException("Borrowing", " id", borrowingId));
         return borrowingToDtoBorrowResponse(borrowing);
     }
 
+    @PreAuthorize("hasRole('ADMIN') or @customPermissionEvaluator.isOwner(authentication, #userId)")
     @Override
-    public DtoBorrowResponse getBorrowingByUserId(Long userId) {
-        Borrowing borrowing = borrowingRepository.findByUserId(userId).orElseThrow(() -> new ResourceNotFoundException("Borrowing", " user id", userId));
-        return borrowingToDtoBorrowResponse(borrowing);
-    }
-
-    @Override
-    public DtoBorrowResponse getBorrowingByBookId(Long bookId) {
-        Borrowing borrowing = borrowingRepository.findByBookId(bookId).orElseThrow(() -> new ResourceNotFoundException("Borrowing", " book id", bookId));
-        return borrowingToDtoBorrowResponse(borrowing);
+    public List<DtoBorrowResponse> getBorrowingByUserId(Long userId) {
+        Set<Borrowing> borrowings = borrowingRepository.findByUserId(userId);
+        return borrowings.stream().map(borrowing -> borrowingToDtoBorrowResponse(borrowing)).toList();
     }
 
     @Override
     public DtoBorrowResponse returnBook(Long borrowingId) {
         Borrowing borrowing = borrowingRepository.findById(borrowingId).orElseThrow(() -> new ResourceNotFoundException("Borrowing", " id", borrowingId));
+
+        checkOwnership(borrowing);
+
         if (borrowing.getReturnDate() != null){
             throw new ConflictException("Book has already been returned");
         }
@@ -140,5 +144,22 @@ public class BorrowingServiceImpl implements IBorrowingService {
         Penalty penalty = new Penalty(borrowing.getId(), borrowing.getUser().getId(),cost, StateOfPenalty.UNPAID);
         penalty.setCreateTime(new Date());
         return penaltyRepository.save(penalty);
+    }
+
+    private void checkOwnership(Borrowing borrowing) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new AccessDeniedException("Acces Denied.");
+        }
+
+        boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (isAdmin) {
+            return;
+        }
+
+        Long currentUserId = Long.parseLong(auth.getPrincipal().toString());
+        if (!borrowing.getUser().getId().equals(currentUserId)) {
+            throw new AccessDeniedException("Acces Denied. You dont have access this entity.");
+        }
     }
 }

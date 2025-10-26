@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -125,6 +126,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<CustomResponseBody<?>> handleMacUploadSizeEx(){
         CustomResponseBody<?> body = CustomResponseBody.failure(ApiStatus.ERROR_PAYLOAD_TOO_LARGE,"The requested body was over to max size");
         return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<CustomResponseBody<?>> handleAccesDeniedForMethodSecurity(){
+        CustomResponseBody<Object> body = CustomResponseBody.failure(ApiStatus.ERROR_FORBIDDEN, "Acces denied");
+        return new ResponseEntity<>(body,HttpStatus.valueOf(body.getHttpStatus()));
     }
 
     /**

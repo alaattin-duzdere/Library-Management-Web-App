@@ -9,6 +9,7 @@ import com.example.library_management.penalties.repository.PenaltyRepository;
 import com.example.library_management.penalties.service.IPenaltyService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,6 +25,14 @@ public class PenaltyServiceImpl implements IPenaltyService {
         this.penaltyRepository = penaltyRepository;
     }
 
+    private DtoPenaltyResponse penaltyToDtoPenaltyResponse(Penalty penalty){
+        DtoPenaltyResponse dtoPenaltyResponse = new DtoPenaltyResponse();
+        BeanUtils.copyProperties(penalty, dtoPenaltyResponse);
+        dtoPenaltyResponse.setPenaltyId(penalty.getId());
+        return dtoPenaltyResponse;
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or @customPermissionEvaluator.isOwner(authentication, #userId)")
     @Override
     public List<DtoPenaltyResponse> getUserPenalties(Long userId) {
         Set<Penalty> penalties = penaltyRepository.findByUserId(userId).orElseThrow(() -> new ResourceNotFoundException("Penalty", "User ID", userId));
@@ -31,27 +40,18 @@ public class PenaltyServiceImpl implements IPenaltyService {
             throw new ResourceNotFoundException("Penalty", "User ID", userId);
         }
         List<DtoPenaltyResponse> listOfDtoPenalties = penalties.stream()
-                .map(penalty -> {
-                    DtoPenaltyResponse dtoPenaltyResponse = new DtoPenaltyResponse();
-                    BeanUtils.copyProperties(penalty, dtoPenaltyResponse);
-                    dtoPenaltyResponse.setPenaltyId(penalty.getId());
-                    return dtoPenaltyResponse;
-                })
+                .map(this::penaltyToDtoPenaltyResponse)
                 .toList();
         log.warn(listOfDtoPenalties.toString());
 
         return listOfDtoPenalties;
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @Override
     public List<DtoPenaltyResponse> getAllPenalties() {
 
-        return penaltyRepository.findAll().stream().map(penalty -> {
-            DtoPenaltyResponse dtoPenaltyResponse = new DtoPenaltyResponse();
-            BeanUtils.copyProperties(penalty, dtoPenaltyResponse);
-            dtoPenaltyResponse.setPenaltyId(penalty.getId());
-            return dtoPenaltyResponse;
-        }).toList();
+        return penaltyRepository.findAll().stream().map(this::penaltyToDtoPenaltyResponse).toList();
     }
 
     @Override
@@ -67,9 +67,6 @@ public class PenaltyServiceImpl implements IPenaltyService {
         penalty.setStateOfPenalty(StateOfPenalty.PAID);
         penaltyRepository.save(penalty);
 
-        DtoPenaltyResponse dtoPenaltyResponse = new DtoPenaltyResponse();
-        BeanUtils.copyProperties(penalty, dtoPenaltyResponse);
-
-        return dtoPenaltyResponse;
+        return penaltyToDtoPenaltyResponse(penalty);
     }
 }
