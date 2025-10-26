@@ -23,6 +23,12 @@ public class CategoryServiceImpl implements ICategoryService {
         this.categoryRepository = categoryRepository;
     }
 
+    private DtoCategoryResponse categoryToDtoCategoryResponse(Category category){
+        DtoCategoryResponse dtoCategoryResponse = new DtoCategoryResponse();
+        BeanUtils.copyProperties(category, dtoCategoryResponse);
+        return dtoCategoryResponse;
+    }
+
     @Override
     public DtoCategoryResponse saveCategory(DtoCategoryRequest input) {
         if (categoryRepository.existsByCategoryName(input.getCategoryName())){
@@ -35,18 +41,14 @@ public class CategoryServiceImpl implements ICategoryService {
 
         Category save = categoryRepository.save(category);
 
-        DtoCategoryResponse response = new DtoCategoryResponse();
-        BeanUtils.copyProperties(save, response);
-        return response;
+        return categoryToDtoCategoryResponse(save);
     }
 
     @Override
     public DtoCategoryResponse getCategoryById(Long id) {
         Category category = categoryRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Category", "id", id));
 
-        DtoCategoryResponse response = new DtoCategoryResponse();
-        BeanUtils.copyProperties(category, response);
-        return response;
+        return categoryToDtoCategoryResponse(category);
     }
 
     @Override
@@ -55,9 +57,7 @@ public class CategoryServiceImpl implements ICategoryService {
 
         List<DtoCategoryResponse> responseList = new ArrayList<>();
         for (Category category : all) {
-            DtoCategoryResponse response = new DtoCategoryResponse();
-            BeanUtils.copyProperties(category, response);
-            responseList.add(response);
+            responseList.add(categoryToDtoCategoryResponse(category));
         }
         return responseList;
     }
@@ -67,9 +67,8 @@ public class CategoryServiceImpl implements ICategoryService {
         Category category = categoryRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Category", "id", id));
         category.setCategoryName(input.getCategoryName());
         Category updatedCategory = categoryRepository.save(category);
-        DtoCategoryResponse response = new DtoCategoryResponse();
-        BeanUtils.copyProperties(updatedCategory, response);
-        return response;
+
+        return categoryToDtoCategoryResponse(updatedCategory);
     }
 
     @Override

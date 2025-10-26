@@ -4,6 +4,7 @@ import com.example.library_management.user.model.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,9 @@ public class JwtService {
 
     private static final String SECRET_KEY = "rWwQOOZMkONRJon+GjwWPN2XtScgqevZJtjU9biNzFo=";
 
+    @Value("${jwt.acces-expiration-seconds}")
+    private long jwtAccesExpirationSeconds;
+
     public String generateToken(UserDetails userDetails) {
         List<String> authorities = userDetails.getAuthorities()
                 .stream()
@@ -31,7 +35,7 @@ public class JwtService {
         return Jwts.builder()
                 .setSubject(user.getId().toString())
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 24 hours
+                .setExpiration(new Date(System.currentTimeMillis() + jwtAccesExpirationSeconds * 1000))
                 .claim("authorities", userDetails.getAuthorities().stream()
                         .map(GrantedAuthority::getAuthority)
                         .toList())

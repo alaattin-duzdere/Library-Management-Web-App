@@ -3,6 +3,7 @@ package com.example.library_management.book.model;
 import com.example.library_management.author.model.Author;
 import com.example.library_management.category.model.Category;
 import com.example.library_management.common.model.BaseEntity;
+import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -35,6 +36,7 @@ public class Book extends BaseEntity {
     @Column(name="number_of_pages")
     private int numberOfPages;
 
+    @Nullable
     @Column(name = "image_url")
     private String imageUrl;
 

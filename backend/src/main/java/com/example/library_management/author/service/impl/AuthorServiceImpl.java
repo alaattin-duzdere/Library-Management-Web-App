@@ -24,6 +24,12 @@ public class AuthorServiceImpl implements IAuthorService {
         this.authorRepository = authorRepository;
     }
 
+    private DtoAuthorResponse AuthorToDtoAuthorResponse(Author author){
+        DtoAuthorResponse dtoAuthorResponse = new DtoAuthorResponse();
+        BeanUtils.copyProperties(author, dtoAuthorResponse);
+        return dtoAuthorResponse;
+    }
+
     @Override
     public DtoAuthorResponse saveAuthor(DtoAuthorRequest input) {
         Author author = new Author();
@@ -33,18 +39,14 @@ public class AuthorServiceImpl implements IAuthorService {
 
         Author savedAuthor = authorRepository.save(author);
 
-        DtoAuthorResponse dtoAuthorResponse = new DtoAuthorResponse();
-        BeanUtils.copyProperties(savedAuthor, dtoAuthorResponse);
-        return dtoAuthorResponse;
+        return AuthorToDtoAuthorResponse(savedAuthor);
     }
 
     @Override
     public DtoAuthorResponse getAuthorById(Long id) {
         Author author = authorRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Author", " id", id));
 
-        DtoAuthorResponse dtoAuthorResponse = new DtoAuthorResponse();
-        BeanUtils.copyProperties(author, dtoAuthorResponse);
-        return dtoAuthorResponse;
+        return AuthorToDtoAuthorResponse(author);
     }
 
     @Override
@@ -53,9 +55,7 @@ public class AuthorServiceImpl implements IAuthorService {
 
         List<DtoAuthorResponse> dtoAuthorResponses = new ArrayList<>();
         for (Author author : all) {
-            DtoAuthorResponse dtoAuthorResponse = new DtoAuthorResponse();
-            BeanUtils.copyProperties(author, dtoAuthorResponse);
-            dtoAuthorResponses.add(dtoAuthorResponse);
+            dtoAuthorResponses.add(AuthorToDtoAuthorResponse(author));
         }
         return dtoAuthorResponses;
     }
@@ -67,9 +67,8 @@ public class AuthorServiceImpl implements IAuthorService {
         author.setLastName(input.getLastName());
 
         Author updatedAuthor = authorRepository.save(author);
-        DtoAuthorResponse dtoAuthorResponse = new DtoAuthorResponse();
-        BeanUtils.copyProperties(updatedAuthor, dtoAuthorResponse);
-        return dtoAuthorResponse;
+
+        return AuthorToDtoAuthorResponse(updatedAuthor);
     }
 
     @Override

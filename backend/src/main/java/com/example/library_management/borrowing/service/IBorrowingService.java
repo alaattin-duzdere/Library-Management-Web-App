@@ -2,14 +2,14 @@ package com.example.library_management.borrowing.service;
 
 import com.example.library_management.borrowing.dto.DtoBorrowResponse;
 
+import java.util.List;
+
 public interface IBorrowingService {
     DtoBorrowResponse borrowBook(Long bookId);
 
     DtoBorrowResponse getBorrowingDetails(Long borrowingId);
 
-    DtoBorrowResponse getBorrowingByUserId(Long userId);
-
-    DtoBorrowResponse getBorrowingByBookId(Long bookId);
+    List<DtoBorrowResponse> getBorrowingByUserId(Long userId);
 
     DtoBorrowResponse returnBook(Long borrowingId);
 

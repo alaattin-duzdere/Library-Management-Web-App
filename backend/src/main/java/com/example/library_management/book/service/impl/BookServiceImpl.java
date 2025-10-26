@@ -14,6 +14,7 @@ import com.example.library_management.exceptions.client.ConflictException;
 import com.example.library_management.exceptions.client.InvalidInputException;
 import com.example.library_management.exceptions.client.ResourceNotFoundException;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+@Slf4j
 @Service
 public class BookServiceImpl implements IBookService {
 
@@ -75,7 +77,7 @@ public class BookServiceImpl implements IBookService {
         Set<Category> categories = book.getCategories();
         categories.forEach(category -> dtoBookResponse.getCategories().add(category.getId()));
 
-        if (!book.getImageUrl().isEmpty()){
+        if (book.getImageUrl()!=null){
             dtoBookResponse.setImageUrl(baseUrl + dtoBookResponse.getImageUrl());
         }
 

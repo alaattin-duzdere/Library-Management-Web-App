@@ -1,6 +1,7 @@
 package com.example.library_management.book.dto;
 
 import com.example.library_management.book.model.Situation;
+import jakarta.annotation.Nullable;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -25,5 +26,6 @@ public class DtoBookResponse {
 
     private Situation situation;
 
+    @Nullable()
     private String imageUrl;
 }

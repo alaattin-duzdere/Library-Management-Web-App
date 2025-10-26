@@ -21,6 +21,7 @@ import com.example.library_management.user.repository.VerificationTokenRepositor
 import com.example.library_management.user.service.IAuthService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -38,6 +39,12 @@ import java.util.UUID;
 @Slf4j
 @Service
 public class AuthServiceImpl implements IAuthService {
+
+    @Value("${jwt.refresh-expiration-seconds}")
+    private long jwtRefreshExpirationSeconds;
+
+    @Value("${jwt.acces-expiration-seconds}")
+    private long jwtAccessExpirationSeconds;
 
     private final EmailService emailService;
 
@@ -76,7 +83,7 @@ public class AuthServiceImpl implements IAuthService {
     private RefreshToken createRefreshToken(User user) {
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setCreateTime(new Date());
-        refreshToken.setExpiredDate(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)); // 1 day expiration
+        refreshToken.setExpiredDate(new Date(System.currentTimeMillis() + jwtRefreshExpirationSeconds * 1000)); // 1 day expiration
         refreshToken.setRefreshToken(UUID.randomUUID().toString());
         refreshToken.setUser(user);
         return refreshToken;
@@ -145,7 +152,7 @@ public class AuthServiceImpl implements IAuthService {
             String accessToken = jwtUtil.generateToken(user);
             RefreshToken savedRefreshToken = refreshTokenRepository.save(createRefreshToken(user));
 
-            return new LoginResponse(accessToken, savedRefreshToken.getRefreshToken());
+            return new LoginResponse(accessToken, savedRefreshToken.getRefreshToken(),jwtAccessExpirationSeconds,jwtRefreshExpirationSeconds);
         } catch (AuthenticationException e) {
             throw new InvalidCredentialsException();
         }catch (DataAccessException e) {
@@ -173,7 +180,7 @@ public class AuthServiceImpl implements IAuthService {
         RefreshToken refreshToken = createRefreshToken(user);
         RefreshToken savedRefreshToken= refreshTokenRepository.save(refreshToken);
 
-        return new LoginResponse(accessToken, savedRefreshToken.getRefreshToken());
+        return new LoginResponse(accessToken, savedRefreshToken.getRefreshToken(),jwtAccessExpirationSeconds,jwtRefreshExpirationSeconds);
     }
 
     private String createPasswordResetToken(String email) {
