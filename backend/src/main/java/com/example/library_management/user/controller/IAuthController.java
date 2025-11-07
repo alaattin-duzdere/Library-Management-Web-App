@@ -2,6 +2,7 @@ package com.example.library_management.user.controller;
 
 import com.example.library_management.api.CustomResponseBody;
 import com.example.library_management.user.dto.*;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 
 public interface IAuthController {
@@ -9,6 +10,8 @@ public interface IAuthController {
     ResponseEntity<CustomResponseBody<DtoUser>> register(RegisterRequest registerRequest);
 
     ResponseEntity<CustomResponseBody<LoginResponse>> login(LoginRequest input);
+
+    ResponseEntity<CustomResponseBody<?>> logout(HttpServletRequest request);
 
     ResponseEntity<CustomResponseBody<LoginResponse>>refreshToken(RefreshTokenRequest input);
 

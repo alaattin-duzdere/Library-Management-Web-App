@@ -3,6 +3,7 @@ package com.example.library_management.book.model;
 import com.example.library_management.author.model.Author;
 import com.example.library_management.category.model.Category;
 import com.example.library_management.common.model.BaseEntity;
+import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -24,7 +25,7 @@ public class Book extends BaseEntity {
     private String title;
 
     @Column(name="isbn", unique = true)
-    private String isbn;
+    private Long isbn;
 
     @ManyToMany
     private Set<Author> authors = new HashSet<>();
@@ -33,5 +34,14 @@ public class Book extends BaseEntity {
     private Set<Category> categories = new HashSet<>();
 
     @Column(name="number_of_pages")
-    public int numberOfPages;
+    private int numberOfPages;
+
+    @Nullable
+    @Column(name = "image_url")
+    private String imageUrl;
+
+    @Column(name="situation")
+    @Enumerated(EnumType.STRING)
+    private Situation situation = Situation.AVAILABLE;
+
 }

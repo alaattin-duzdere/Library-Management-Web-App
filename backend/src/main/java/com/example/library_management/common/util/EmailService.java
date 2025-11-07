@@ -15,41 +15,17 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
-    public void sendVerificationEmail(String to, String token) {
+    public void sendEmail(String to, String subject, String text) {
         try {
-            log.warn("Sending verification email to: " + to);
-
-            String subject = "Verify your account";
-            String url = "http://localhost:8080/api/auth/verify?token=" + token;
-            String message = "Click the link to verify your account: " + url;
-
+            log.warn("Sending email to: {}", to);
             SimpleMailMessage mailMessage = new SimpleMailMessage();
             mailMessage.setTo(to);
             mailMessage.setSubject(subject);
-            mailMessage.setText(message);
-
+            mailMessage.setText(text);
             mailSender.send(mailMessage);
         } catch (MailException e) {
-            throw new EmailServiceException("Failed to send verification email", e);
-        }
-    }
-
-    public void sendPasswordResetEmail(String to, String token) {
-        try {
-            log.warn("Sending password reset email to: " + to);
-
-            String subject = "Reset your password";
-            String url = "http://localhost:8080/api/auth/reset-password-handle?token=" + token;
-            String message = "Click the link to reset your password: " + url;
-
-            SimpleMailMessage mailMessage = new SimpleMailMessage();
-            mailMessage.setTo(to);
-            mailMessage.setSubject(subject);
-            mailMessage.setText(message);
-
-            mailSender.send(mailMessage);
-        } catch (Exception e) {
-            throw new EmailServiceException("Failed to send password reset email", e);
+            throw new EmailServiceException("Failed to send email", e);
         }
     }
 }
+

@@ -8,14 +8,19 @@ import io.jsonwebtoken.SignatureException;
 import jogamp.common.util.locks.SingletonInstanceServerSocket;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
+import java.rmi.ServerException;
 import java.util.stream.Collectors;
 
 @ControllerAdvice
@@ -69,15 +74,21 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
     }
 
+    @ExceptionHandler(UsernameNotFoundException.class)
+    public ResponseEntity<CustomResponseBody<?>> handleUsernameNotFoundException(UsernameNotFoundException ex) {
+        CustomResponseBody<?> body = CustomResponseBody.failure(
+                ApiStatus.ERROR_USER_NOT_FOUND,
+                "The specified user does not exist."
+        );
+        return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
+    }
+
     /**
      * Handles malformed or structurally incorrect JWTs.
      */
     @ExceptionHandler(MalformedJwtException.class)
     public ResponseEntity<CustomResponseBody<?>> handleMalformedJwtException(MalformedJwtException ex) {
-        CustomResponseBody<?> body = CustomResponseBody.failure(
-                ApiStatus.ERROR_INVALID_TOKEN,
-                "The provided token is malformed."
-        );
+        CustomResponseBody<?> body = CustomResponseBody.failure(ApiStatus.ERROR_INVALID_TOKEN, "The provided token is malformed.");
         return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
     }
 
@@ -111,9 +122,17 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
     }
 
-    //HttpRequestMethodNotSupportedException
-    //HttpMessageNotReadableException
-    //NoHandlerFoundException
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<CustomResponseBody<?>> handleMacUploadSizeEx(){
+        CustomResponseBody<?> body = CustomResponseBody.failure(ApiStatus.ERROR_PAYLOAD_TOO_LARGE,"The requested body was over to max size");
+        return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<CustomResponseBody<?>> handleAccesDeniedForMethodSecurity(){
+        CustomResponseBody<Object> body = CustomResponseBody.failure(ApiStatus.ERROR_FORBIDDEN, "Acces denied");
+        return new ResponseEntity<>(body,HttpStatus.valueOf(body.getHttpStatus()));
+    }
 
     /**
      * Fallback handler for all unexpected exceptions (e.g., NullPointerException).

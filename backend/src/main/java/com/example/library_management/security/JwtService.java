@@ -4,6 +4,7 @@ import com.example.library_management.user.model.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -11,14 +12,20 @@ import org.springframework.stereotype.Service;
 import java.security.Key;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Function;
 
 @Service
 public class JwtService {
 
+    @Value("${jwt.access-expiration-seconds}")
+    private long jwtAccessExpirationSeconds;
+    @Value("${jwt.reset-pass-expiration-seconds}")
+    private long jwtResetPassExpirationSeconds;
+
     private static final String SECRET_KEY = "rWwQOOZMkONRJon+GjwWPN2XtScgqevZJtjU9biNzFo=";
 
-    public String generateToken(UserDetails userDetails) {
+    public String generateAccessToken(UserDetails userDetails) {
         List<String> authorities = userDetails.getAuthorities()
                 .stream()
                 .map(GrantedAuthority::getAuthority)
@@ -31,10 +38,28 @@ public class JwtService {
         return Jwts.builder()
                 .setSubject(user.getId().toString())
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 24 hours
+                .setExpiration(new Date(System.currentTimeMillis() + jwtAccessExpirationSeconds *1000)) //
                 .claim("authorities", userDetails.getAuthorities().stream()
                         .map(GrantedAuthority::getAuthority)
                         .toList())
+                .claim("email", user.getEmail())
+                .claim("userName", user.getUsername())
+                .claim(Claims.AUDIENCE,JwtAudienceConstants.ACCESS_TOKEN_TYPE)
+                .claim(Claims.ID, UUID.randomUUID().toString())
+                .signWith(getKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String generateResetPassToken(UserDetails userDetails) {
+        if(!(userDetails instanceof User user)) {
+            throw new IllegalArgumentException("UserDetails must be an instance of User");
+        }
+        return Jwts.builder()
+                .setSubject(user.getId().toString())
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + jwtResetPassExpirationSeconds *1000)) //
+                .claim(Claims.AUDIENCE,JwtAudienceConstants.RESET_PASS_TYPE)
+                .claim(Claims.ID, UUID.randomUUID().toString())
                 .signWith(getKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -64,5 +89,10 @@ public class JwtService {
     public boolean isTokenValid(String token){
         Date expireDate = exportToken(token, Claims::getExpiration);
         return new Date().before(expireDate);
+    }
+
+    public long getRemainingExpirationMillis(String token){
+        Date expireDate = exportToken(token, Claims::getExpiration);
+        return (expireDate.getTime()-new Date().getTime());
     }
 }
