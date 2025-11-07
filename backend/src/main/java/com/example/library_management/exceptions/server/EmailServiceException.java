@@ -13,4 +13,8 @@ public class EmailServiceException extends BaseApiException {
     public EmailServiceException(String message, Throwable cause) {
         super(ApiStatus.ERROR_EMAIL_SERVICE_FAILURE, message, cause);
     }
+
+    public EmailServiceException(String message) {
+        super(ApiStatus.ERROR_EMAIL_SERVICE_FAILURE,message);
+    }
 }

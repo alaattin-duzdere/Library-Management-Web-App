@@ -6,14 +6,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class TestController {
 
-    private final NotificationServiceTest notificationServiceTest;
+    private final ReminderServiceTest reminderServiceTest;
 
-    public TestController(NotificationServiceTest notificationServiceTest) {
-        this.notificationServiceTest = notificationServiceTest;
+    public TestController(ReminderServiceTest reminderServiceTest) {
+        this.reminderServiceTest = reminderServiceTest;
     }
 
     @PostMapping("/test/notification")
     public String notificationTest(){
-        return notificationServiceTest.testNotificationService();
+        return reminderServiceTest.TestofOverdueReminders();
     }
 }

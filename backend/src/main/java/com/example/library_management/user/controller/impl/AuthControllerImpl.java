@@ -1,23 +1,19 @@
 package com.example.library_management.user.controller.impl;
 
-
+import com.example.library_management.api.ApiStatus;
 import com.example.library_management.api.CustomResponseBody;
-import com.example.library_management.exceptions.auth.ExpiredTokenException;
-import com.example.library_management.exceptions.auth.InvalidTokenException;
+import com.example.library_management.security.JwtService;
+import com.example.library_management.security.TokenBlacklistService;
 import com.example.library_management.user.controller.IAuthController;
 import com.example.library_management.user.dto.*;
-import com.example.library_management.user.model.User;
-import com.example.library_management.user.model.VerificationToken;
-import com.example.library_management.user.repository.UserRepository;
-import com.example.library_management.user.repository.VerificationTokenRepository;
 import com.example.library_management.user.service.IAuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDateTime;
 
 @Slf4j
 @RestController
@@ -25,14 +21,14 @@ public class AuthControllerImpl implements IAuthController {
 
     private final IAuthService authService;
 
-    private final VerificationTokenRepository tokenRepository;
+    private final TokenBlacklistService blacklistService;
 
-    private final UserRepository userRepository;
+    private final JwtService jwtUtils;
 
-    public AuthControllerImpl(IAuthService authService, VerificationTokenRepository tokenRepository, UserRepository userRepository) {
+    public AuthControllerImpl(IAuthService authService, TokenBlacklistService blacklistService, JwtService jwtUtils) {
         this.authService = authService;
-        this.tokenRepository = tokenRepository;
-        this.userRepository = userRepository;
+        this.blacklistService = blacklistService;
+        this.jwtUtils = jwtUtils;
     }
 
     @PostMapping("${api.auth.register}")
@@ -41,7 +37,16 @@ public class AuthControllerImpl implements IAuthController {
         log.warn("Inside register controller");
         log.warn("Registration attempt for user: {}", registerRequest.getUsername());
         CustomResponseBody<DtoUser> body = CustomResponseBody.ok(authService.register(registerRequest), "User registered successfully. Please check your email for verification instructions.");
-        return new ResponseEntity<>(body,HttpStatusCode.valueOf(body.getHttpStatus()));
+        return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
+    }
+
+    @GetMapping("${api.auth.verify}")
+    @Override
+    public ResponseEntity<CustomResponseBody<String>> verifyUser(@RequestParam("token") String token) {
+        // TODO: redirect user if verify is successful to 'localhost:3000/login?verifySuccessful=true'
+        String message = authService.verifyUser(token);
+        CustomResponseBody<String> body = CustomResponseBody.ok(message, message);
+        return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
     }
 
     @PostMapping("${api.auth.login}")
@@ -52,27 +57,26 @@ public class AuthControllerImpl implements IAuthController {
         return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
     }
 
+    @PostMapping("/api/auth/logout")
+    @Override
+    public ResponseEntity<CustomResponseBody<?>> logout(HttpServletRequest request) {
+
+        String headerAuth = request.getHeader("Authorization");
+        if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
+            String token = headerAuth.substring(7);
+
+            CustomResponseBody<String> body = CustomResponseBody.ok(authService.logout(token), "Successfully completed");
+            return new ResponseEntity<>(body,HttpStatusCode.valueOf(body.getHttpStatus()));
+        }
+
+        CustomResponseBody<Object> body = CustomResponseBody.failure(ApiStatus.ERROR_INVALID_INPUT, "No token found to invalidate");
+        return new ResponseEntity<>(body,HttpStatusCode.valueOf(body.getHttpStatus()));
+    }
+
     @PostMapping("${api.auth.refresh}")
     @Override
     public ResponseEntity<CustomResponseBody<LoginResponse>> refreshToken(@Valid @RequestBody RefreshTokenRequest input) {
         CustomResponseBody<LoginResponse> body = CustomResponseBody.ok(authService.refreshToken(input),"Token refreshed successfully");
-        return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
-    }
-
-    @GetMapping("${api.auth.verify}")
-    @Override
-    public ResponseEntity<CustomResponseBody<String>> verifyUser(@RequestParam("token") String token) {
-        VerificationToken verificationToken = tokenRepository.findByToken(token).orElseThrow(() -> new InvalidTokenException("Invalid verification token"));
-
-        if (verificationToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-            throw new ExpiredTokenException("Verification token has expired");
-        }
-
-        User user = verificationToken.getUser();
-        user.setVerified(true);
-        userRepository.save(user);
-
-        CustomResponseBody<String> body = CustomResponseBody.ok("User verified successfully", "User verified successfully");
         return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
     }
 

@@ -1,16 +1,23 @@
 package com.example.library_management.penalties.service.impl;
 
+import com.example.library_management.borrowing.model.Borrowing;
+import com.example.library_management.borrowing.repository.BorrowingRepository;
 import com.example.library_management.exceptions.client.ConflictException;
 import com.example.library_management.exceptions.client.ResourceNotFoundException;
+import com.example.library_management.exceptions.server.EmailServiceException;
 import com.example.library_management.penalties.dto.DtoPenaltyResponse;
 import com.example.library_management.penalties.model.Penalty;
 import com.example.library_management.penalties.model.StateOfPenalty;
 import com.example.library_management.penalties.repository.PenaltyRepository;
 import com.example.library_management.penalties.service.IPenaltyService;
+import com.example.library_management.penalties.service.reminder.IReminderStrategy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Set;
@@ -21,8 +28,14 @@ public class PenaltyServiceImpl implements IPenaltyService {
 
     private final PenaltyRepository penaltyRepository;
 
-    public PenaltyServiceImpl(PenaltyRepository penaltyRepository) {
+    private final BorrowingRepository borrowingRepository;
+
+    private final IReminderStrategy reminderStrategy;
+
+    public PenaltyServiceImpl(PenaltyRepository penaltyRepository, BorrowingRepository borrowingRepository,@Qualifier("emailReminder") IReminderStrategy reminderStrategy) {
         this.penaltyRepository = penaltyRepository;
+        this.borrowingRepository = borrowingRepository;
+        this.reminderStrategy = reminderStrategy;
     }
 
     private DtoPenaltyResponse penaltyToDtoPenaltyResponse(Penalty penalty){
@@ -68,5 +81,21 @@ public class PenaltyServiceImpl implements IPenaltyService {
         penaltyRepository.save(penalty);
 
         return penaltyToDtoPenaltyResponse(penalty);
+    }
+
+    @Scheduled(cron = "0 0 2 * * ?") // 02:00
+    @Transactional(readOnly = true)
+    public void processOverdueBorrowings() {
+        List<Borrowing> overdueBorrowings = borrowingRepository.findOverdueAndNotReturned();
+        log.warn("Found " + overdueBorrowings.size() + " overdue borrowings.");
+
+        for (Borrowing borrowing : overdueBorrowings) {
+            try {
+                reminderStrategy.sendOverdueReminders(borrowing);
+            } catch (Exception e) {
+                log.error("Failed to send reminder for borrowing ID {}: {}", borrowing.getId(), e.getMessage());
+                throw new EmailServiceException("There is a problem with email sending",e);
+            }
+        }
     }
 }

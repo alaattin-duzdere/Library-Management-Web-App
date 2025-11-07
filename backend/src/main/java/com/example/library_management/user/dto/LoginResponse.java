@@ -13,7 +13,7 @@ public class LoginResponse {
 
     private String refreshToken;
 
-    private Long accesTokenExpiresInSeconds;
+    private Long accessTokenExpiresIn;
 
-    private Long refreshTokenExpiresInSeconds;
+    private Long refreshTokenExpiresIn;
 }

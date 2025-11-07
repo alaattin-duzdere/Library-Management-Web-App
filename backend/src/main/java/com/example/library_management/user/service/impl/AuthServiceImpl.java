@@ -1,26 +1,29 @@
 package com.example.library_management.user.service.impl;
 
 import com.example.library_management.common.enums.Role;
-import com.example.library_management.common.util.EmailService;
 import com.example.library_management.exceptions.auth.ExpiredTokenException;
 import com.example.library_management.exceptions.auth.InvalidCredentialsException;
 import com.example.library_management.exceptions.auth.InvalidTokenException;
 import com.example.library_management.exceptions.auth.UserNotVerifiedException;
 import com.example.library_management.exceptions.client.ConflictException;
-import com.example.library_management.exceptions.client.ResourceNotFoundException;
 import com.example.library_management.exceptions.client.PasswordMismatchException;
+import com.example.library_management.exceptions.client.ResourceNotFoundException;
 import com.example.library_management.exceptions.server.DatabaseException;
+import com.example.library_management.security.JwtAudienceConstants;
 import com.example.library_management.security.JwtService;
+import com.example.library_management.security.TokenBlacklistService;
 import com.example.library_management.user.dto.*;
 import com.example.library_management.user.model.RefreshToken;
 import com.example.library_management.user.model.User;
-import com.example.library_management.user.model.VerificationToken;
 import com.example.library_management.user.repository.RefreshTokenRepository;
 import com.example.library_management.user.repository.UserRepository;
-import com.example.library_management.user.repository.VerificationTokenRepository;
 import com.example.library_management.user.service.IAuthService;
+import com.example.library_management.user.service.password.IPasswordResetStrategy;
+import com.example.library_management.user.service.verification.IVerificationStrategy;
+import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.ResponseEntity;
@@ -30,11 +33,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -43,12 +42,8 @@ public class AuthServiceImpl implements IAuthService {
     @Value("${jwt.refresh-expiration-seconds}")
     private long jwtRefreshExpirationSeconds;
 
-    @Value("${jwt.acces-expiration-seconds}")
+    @Value("${jwt.access-expiration-seconds}")
     private long jwtAccessExpirationSeconds;
-
-    private final EmailService emailService;
-
-    private final VerificationTokenRepository tokenRepository;
 
     private final RefreshTokenRepository refreshTokenRepository;
 
@@ -60,14 +55,21 @@ public class AuthServiceImpl implements IAuthService {
 
     private final BCryptPasswordEncoder passwordEncoder;
 
-    public AuthServiceImpl(EmailService emailService, VerificationTokenRepository tokenRepository, RefreshTokenRepository refreshTokenRepository, JwtService jwtUtil, AuthenticationProvider authenticationProvider, UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
-        this.emailService = emailService;
-        this.tokenRepository = tokenRepository;
+    private final IVerificationStrategy verificationStrategy;
+
+    private final IPasswordResetStrategy passwordResetStrategy;
+
+    private final TokenBlacklistService blacklistService;
+
+    public AuthServiceImpl(RefreshTokenRepository refreshTokenRepository, JwtService jwtUtil, AuthenticationProvider authenticationProvider, UserRepository userRepository, BCryptPasswordEncoder passwordEncoder, @Qualifier("linkVerification") IVerificationStrategy verificationStrategy, @Qualifier("linkPasswordReset") IPasswordResetStrategy passwordResetStrategy, TokenBlacklistService blacklistService) {
         this.refreshTokenRepository = refreshTokenRepository;
         this.jwtUtil = jwtUtil;
         this.authenticationProvider = authenticationProvider;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.verificationStrategy = verificationStrategy;
+        this.passwordResetStrategy = passwordResetStrategy;
+        this.blacklistService = blacklistService;
     }
 
     private User createUser(RegisterRequest registerRequest) {
@@ -83,24 +85,10 @@ public class AuthServiceImpl implements IAuthService {
     private RefreshToken createRefreshToken(User user) {
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setCreateTime(new Date());
-        refreshToken.setExpiredDate(new Date(System.currentTimeMillis() + jwtRefreshExpirationSeconds * 1000)); // 1 day expiration
+        refreshToken.setExpiredDate(new Date(System.currentTimeMillis() + jwtRefreshExpirationSeconds *1000));
         refreshToken.setRefreshToken(UUID.randomUUID().toString());
         refreshToken.setUser(user);
         return refreshToken;
-    }
-
-    private String generateVerificationToken(User user) {
-        Optional<VerificationToken> existingToken = tokenRepository.findByUserId(user.getId());
-        if (existingToken.isPresent()) {
-            return existingToken.get().getToken();
-        }
-        String token = UUID.randomUUID().toString();
-        VerificationToken verificationToken = new VerificationToken();
-        verificationToken.setToken(token);
-        verificationToken.setUser(user);
-        verificationToken.setExpiryDate(LocalDateTime.now().plusHours(24));
-        tokenRepository.save(verificationToken);
-        return verificationToken.getToken();
     }
 
     @Override
@@ -109,14 +97,13 @@ public class AuthServiceImpl implements IAuthService {
             if (userRepository.findByEmail(registerRequest.getEmail()).isPresent()) {
                 User user = userRepository.findByEmail(registerRequest.getEmail()).get();
                 if (!user.isVerified()){
-                    emailService.sendVerificationEmail(registerRequest.getEmail(),generateVerificationToken(user));
+                    verificationStrategy.sendVerification(user);
                     throw new UserNotVerifiedException(registerRequest.getEmail());
                 }
                 throw new ConflictException("User","email", registerRequest.getEmail());
             }
             User savedUser = userRepository.save(createUser(registerRequest));
-            String token = generateVerificationToken(savedUser);
-            emailService.sendVerificationEmail(registerRequest.getEmail(),token);
+            verificationStrategy.sendVerification(savedUser);
 
             DtoUser dtoUser = new DtoUser();
             BeanUtils.copyProperties(savedUser,dtoUser);
@@ -126,6 +113,11 @@ public class AuthServiceImpl implements IAuthService {
         catch (DataAccessException e) {
             throw new DatabaseException("Could not register user due to a database issue.");
         }
+    }
+
+    @Override
+    public String verifyUser(String token) {
+        return verificationStrategy.verify(token);
     }
 
     @Override
@@ -149,15 +141,27 @@ public class AuthServiceImpl implements IAuthService {
 
             log.warn("Authentication successful for user: {}", input.getEmail());
 
-            String accessToken = jwtUtil.generateToken(user);
+            String accessToken = jwtUtil.generateAccessToken(user);
             RefreshToken savedRefreshToken = refreshTokenRepository.save(createRefreshToken(user));
 
-            return new LoginResponse(accessToken, savedRefreshToken.getRefreshToken(),jwtAccessExpirationSeconds,jwtRefreshExpirationSeconds);
+            return new LoginResponse(accessToken, savedRefreshToken.getRefreshToken(), jwtAccessExpirationSeconds, jwtRefreshExpirationSeconds);
         } catch (AuthenticationException e) {
             throw new InvalidCredentialsException();
         }catch (DataAccessException e) {
             throw new DatabaseException("Could not login user due to a database issue.");
         }
+    }
+
+    @Override
+    public String logout(String token) {
+        long expirationMillis = jwtUtil.getRemainingExpirationMillis(token);
+        log.warn("expiration time mss "+ expirationMillis);
+
+        refreshTokenRepository.deleteByUserId(Long.parseLong(jwtUtil.getUserIdByToken(token)));
+
+        blacklistService.blacklistToken(jwtUtil.exportToken(token,Claims::getId), expirationMillis);
+
+        return "User logout successful";
     }
 
     private boolean isValidRefreshToken(Date expiredDate) {
@@ -176,31 +180,22 @@ public class AuthServiceImpl implements IAuthService {
         }
 
         User user = optRefreshToken.get().getUser();
-        String accessToken = jwtUtil.generateToken(user);
+        String accessToken = jwtUtil.generateAccessToken(user);
         RefreshToken refreshToken = createRefreshToken(user);
         RefreshToken savedRefreshToken= refreshTokenRepository.save(refreshToken);
 
-        return new LoginResponse(accessToken, savedRefreshToken.getRefreshToken(),jwtAccessExpirationSeconds,jwtRefreshExpirationSeconds);
-    }
-
-    private String createPasswordResetToken(String email) {
-        log.info("Creating password reset jwt for email: {}", email);
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User","email",email));
-
-        return jwtUtil.generateToken(user);
+        return new LoginResponse(accessToken, savedRefreshToken.getRefreshToken(), jwtAccessExpirationSeconds, jwtRefreshExpirationSeconds);
     }
 
     @Override
     public String forgotPassword(String email) {
-        String token = createPasswordResetToken(email);
-        emailService.sendPasswordResetEmail(email, token);
-        return "Password reset email sent to " + email;
+        return passwordResetStrategy.sendResetToken(email);
     }
 
     @Override
     public ResponseEntity<Void> handleResetPassword(String token) {
         String userIdByToken = jwtUtil.getUserIdByToken(token);
-        if (userIdByToken == null) {
+        if (userIdByToken == null || !jwtUtil.getClaims(token).getAudience().equals(JwtAudienceConstants.RESET_PASS_TYPE)) {
             log.warn("Invalid token, redirecting to frontend reset password page without token");
             String redirectUrl = "http://10.155.186.94:3000/reset-password";
             return ResponseEntity.status(302).header("Location", redirectUrl).build();
@@ -218,6 +213,9 @@ public class AuthServiceImpl implements IAuthService {
         String userId= jwtUtil.getUserIdByToken(resetPasswordRequest.getToken());
 
         // Token geçerliliğini kontrol et
+        if (!jwtUtil.getClaims(resetPasswordRequest.getToken()).getAudience().equals(JwtAudienceConstants.RESET_PASS_TYPE)){
+            throw new InvalidTokenException("The audience of provided token is not properly");
+        }
         if (userId == null) {
             throw new InvalidTokenException("Invalid password reset token");
         }
