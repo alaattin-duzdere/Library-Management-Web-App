@@ -47,18 +47,15 @@ public class GlobalExceptionHandler {
     public ResponseEntity<CustomResponseBody<?>> handleValidationExceptionsSimple(
             MethodArgumentNotValidException ex) {
 
-        // 1. Tüm validasyon hata mesajlarını alıp, virgülle ayırarak tek bir String'de birleştir.
         String combinedErrorMessage = ex.getBindingResult().getAllErrors().stream()
                 .map(DefaultMessageSourceResolvable::getDefaultMessage)
                 .collect(Collectors.joining(", "));
 
-        // 2. 'failure' formatında bir CustomResponseBody oluştur.
         CustomResponseBody<?> body = CustomResponseBody.failure(
-                ApiStatus.ERROR_INVALID_INPUT, // Veya validasyon için özel bir ApiStatus kodu
-                combinedErrorMessage // Birleştirilmiş hata mesajını buraya koyuyoruz
+                ApiStatus.ERROR_INVALID_INPUT,
+                combinedErrorMessage
         );
 
-        // 3. ResponseEntity ile 400 Bad Request durum kodunu ve body'yi döndür.
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 

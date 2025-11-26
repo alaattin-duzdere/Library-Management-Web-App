@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.view.RedirectView;
 
 @Slf4j
 @RestController
@@ -40,13 +41,18 @@ public class AuthControllerImpl implements IAuthController {
         return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
     }
 
-    @GetMapping("${api.auth.verify}")
+    @PostMapping("${api.auth.resend-verification}")
     @Override
-    public ResponseEntity<CustomResponseBody<String>> verifyUser(@RequestParam("token") String token) {
-        // TODO: redirect user if verify is successful to 'localhost:3000/login?verifySuccessful=true'
-        String message = authService.verifyUser(token);
+    public ResponseEntity<CustomResponseBody<String>> resendVerification(@Valid @RequestBody ForgotPasswordRequest emailRequest) {
+        String message = authService.resendVerification(emailRequest.getEmail());
         CustomResponseBody<String> body = CustomResponseBody.ok(message, message);
         return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
+    }
+
+    @GetMapping("${api.auth.verify}")
+    @Override
+    public RedirectView verifyUser(@RequestParam("token") String token) {
+        return authService.verifyUser(token);
     }
 
     @PostMapping("${api.auth.login}")

@@ -23,6 +23,8 @@ public class DtoBorrowResponse {
 
     private Date lastReturnDate;
 
+    private Date returnDate;
+
     private Situation situation;
 
     private Double penaltyCost;

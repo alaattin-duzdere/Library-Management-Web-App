@@ -2,11 +2,14 @@ package com.example.library_management.user.service;
 
 import com.example.library_management.user.dto.*;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.view.RedirectView;
 
 public interface IAuthService {
     DtoUser register(RegisterRequest registerRequest);
 
-    String verifyUser(String token);
+    String resendVerification(String email);
+
+    RedirectView verifyUser(String token);
 
     LoginResponse login(LoginRequest input);
 

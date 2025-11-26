@@ -49,6 +49,9 @@ public class SecurityConfig {
     @Value("${api.auth.register}")
     private String registerEndpoint ;
 
+    @Value("${api.auth.resend-verification}")
+    private String resendVerificationEndpoint;
+
     @Value("${api.auth.login}")
     private String loginEndpoint ;
 
@@ -71,9 +74,9 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http, CorsConfigurationSource corsConfigurationSource) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/api/auth/reset-password-submit",registerEndpoint,loginEndpoint,refreshEndpoint,verifyEndpoint,forgotPasswordEndpoint, resetPasswordHandlerEndpoint, passwordResetEndpoint).permitAll()
+                        .requestMatchers(passwordResetEndpoint,registerEndpoint,resendVerificationEndpoint,loginEndpoint,refreshEndpoint,verifyEndpoint,forgotPasswordEndpoint, resetPasswordHandlerEndpoint, passwordResetEndpoint).permitAll()
                         .requestMatchers("/media/images/**").permitAll()
                         .requestMatchers("/swagger-ui/**",
                                 "/v3/api-docs/**",
@@ -100,7 +103,8 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:3000",
                 "http://localhost:3001",
-                "http://10.155.186.94:3000" // Your frontend IP:port
+                "http://10.155.186.94:3000",
+                "http://127.0.0.1:5500"// Your frontend IP:port
         ));
 
         // 2. Allow all headers

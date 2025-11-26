@@ -17,7 +17,7 @@ public class CorsConfig implements WebMvcConfigurer {
         registry.addMapping("/**") // Apply CORS configuration to all API endpoints
 
                 // Allow the common local development ports for Next.js/React
-                .allowedOrigins("http://localhost:3000", "http://localhost:3001")
+                .allowedOrigins("http://localhost:3000", "http://localhost:3001","http://127.0.0.1:5500")
 
                 // Allow the necessary HTTP methods, including OPTIONS for preflight requests
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
