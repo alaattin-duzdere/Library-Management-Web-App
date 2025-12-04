@@ -6,6 +6,10 @@ import com.example.library_management.book.dto.DtoBookRequest;
 import com.example.library_management.book.dto.DtoBookResponse;
 import com.example.library_management.book.service.IBookService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -49,10 +53,29 @@ public class BookControllerImpl implements IBookController {
         return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
     }
 
+    /**
+     * <p><strong>Kullanım Örnekleri:</strong></p>
+     * <ul>
+     * <li><strong>Varsayılan (İlk 10 kitap):</strong> <br>
+     * <code>GET /api/kitaplar</code></li>
+     *
+     * <li><strong>Belirli bir sayfa (2. sayfa):</strong> <br>
+     * <code>GET /api/kitaplar?page=1</code> (Not: Sayfa indeksi 0'dan başlar)</li>
+     *
+     * <li><strong>Sayfa boyutunu değiştirme (Tek seferde 50 kitap):</strong> <br>
+     * <code>GET /api/kitaplar?size=50</code></li>
+     *
+     * <li><strong>Sıralama (Fiyata göre azalan):</strong> <br>
+     * <code>GET /api/kitaplar?sort=fiyat,desc</code></li>
+     *
+     * <li><strong>Karmaşık Sorgu (3. sayfa, 20 kayıt, isme göre artan):</strong> <br>
+     * <code>GET /api/kitaplar?page=2&size=20&sort=baslik,asc</code></li>
+     * </ul>
+     */
     @GetMapping("/api/books")
     @Override
-    public ResponseEntity<CustomResponseBody<List<DtoBookResponse>>> getAllBooks() {
-        CustomResponseBody<List<DtoBookResponse>> body = CustomResponseBody.ok(bookService.getAllBooks(), " All books retrieved successfully");
+    public ResponseEntity<CustomResponseBody<Page<DtoBookResponse>>> getAllBooks(@PageableDefault(page = 0, size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) { // Default pagination
+        CustomResponseBody<Page<DtoBookResponse>> body = CustomResponseBody.ok(bookService.getAllBooks(pageable), " All books retrieved successfully");
         return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
     }
 

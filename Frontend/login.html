@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giriş Yap - Kütüphane Yönetimi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="card shadow-sm border-0 login-card">
+                    <div class="card-body">
+                        <h3 class="card-title text-center mb-4">Kütüphane Yönetimi</h3>
+                        
+                        <form id="login-form">
+                            <div id="error-alert" class="alert d-none" role="alert">
+                                <span id="error-message"></span>
+                                <div id="error-extra" class="mt-2"></div> 
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email Adresi</label>
+                                <input type="email" class="form-control" id="email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Şifre</label>
+                                <input type="password" class="form-control" id="password" required>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary" id="login-button">
+                                    Giriş Yap
+                                </button>
+                            </div>
+                        </form>
+                        <hr>
+                        <div class="text-center">
+                            <a href="/register.html">Hesabınız yok mu? Kayıt Olun</a>
+                            <br>
+                            <a href="#" id="forgot-password-link" class="small">Şifremi Unuttum</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        const loginForm = document.getElementById('login-form');
+        const errorAlert = document.getElementById('error-alert');
+        const errorMessage = document.getElementById('error-message'); // Hata mesajı span'ı
+        const errorExtra = document.getElementById('error-extra');   // Ekstra eylem div'i
+        const loginButton = document.getElementById('login-button');
+        const emailInput = document.getElementById('email');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // 1. URL'deki parametreleri kontrol et
+            const params = new URLSearchParams(window.location.search);
+            
+            // ?verifySuccessful=true parametresini kontrol et
+            if (params.get('verifySuccessful') === 'true') {
+                showError('Hesabınız başarıyla doğrulandı! Şimdi giriş yapabilirsiniz.', 'success');
+                // URL'den bu parametreyi temizle
+                window.history.replaceState({}, document.title, "/login.html");
+            }
+
+            // ?resetFailed=true parametresini kontrol et (Şifre sıfırlama linki geçersizse)
+            if (params.get('resetFailed') === 'true') {
+                showError('Geçersiz veya süresi dolmuş şifre sıfırlama linki.', 'danger');
+                window.history.replaceState({}, document.title, "/login.html");
+            }
+        });
+        
+        // Giriş Formu
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showError('', 'danger', true); // Hata kutusunu gizle
+            
+            loginButton.disabled = true;
+            loginButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Giriş Yapılıyor...';
+
+            const email = emailInput.value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await Api.login(email, password);
+                
+                if (response.success) {
+                    Auth.saveTokens(response.data.accessToken, response.data.refreshToken);
+                    window.location.href = '/index.html';
+                } else {
+                    // Hata mesajını göster
+                    showError(response.message);
+
+                    // Eğer 'UserNotVerifiedException' hatası ise
+                    if (response.message && response.message.includes("not verified")) {
+                        // "Yeniden Gönder" linkini oluştur
+                        const resendLink = document.createElement('a');
+                        resendLink.href = "#";
+                        resendLink.className = "alert-link";
+                        resendLink.innerText = "Doğrulama linkini yeniden gönder.";
+                        resendLink.onclick = (event) => {
+                            event.preventDefault();
+                            handleResendVerification(email);
+                        };
+                        errorExtra.appendChild(resendLink);
+                    }
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showError('Giriş yapılırken bir hata oluştu. Lütfen tekrar deneyin.');
+            } finally {
+                loginButton.disabled = false;
+                loginButton.innerHTML = 'Giriş Yap';
+            }
+        });
+        
+        // "Şifremi Unuttum" Linki
+        document.getElementById('forgot-password-link').addEventListener('click', async (e) => {
+            e.preventDefault();
+            const email = emailInput.value;
+            
+            if (!email) {
+                showError('Şifre sıfırlama talebi için lütfen Email alanını doldurun.', 'warning');
+                return;
+            }
+
+            // Butonu geçici olarak devre dışı bırak
+            const link = e.target;
+            link.innerText = "Gönderiliyor...";
+            link.style.pointerEvents = "none";
+            
+            try {
+                //
+                const response = await Api.forgotPassword(email);
+                
+                if (response.success) {
+                    showError('Şifre sıfırlama linki email adresinize gönderildi (Eğer email kayıtlıysa).', 'success');
+                } else {
+                    showError(response.message, 'danger');
+                }
+            } catch (error) {
+                showError('İstek gönderilirken bir hata oluştu.', 'danger');
+            } finally {
+                // Linki tekrar aktif et
+                link.innerText = "Şifremi Unuttum";
+                link.style.pointerEvents = "auto";
+            }
+        });
+
+        // "Yeniden Gönder" Fonksiyonu
+        async function handleResendVerification(email) {
+            showError("Yeni doğrulama linki gönderiliyor, lütfen bekleyin...", "info");
+            try {
+                const response = await Auth.resendVerification(email);
+                if (response.success) {
+                    showError(response.message, 'success');
+                } else {
+                    showError(response.message, 'danger');
+                }
+            } catch (error) {
+                showError('Link gönderilirken bir hata oluştu.', 'danger');
+            }
+        }
+
+        // Hata/Bilgi Mesajı Gösterme Fonksiyonu
+        function showError(message, type = 'danger', hide = false) {
+            errorMessage.textContent = message;
+            errorExtra.innerHTML = ''; // Önceki linkleri temizle
+            
+            if (hide) {
+                errorAlert.classList.add('d-none');
+            } else {
+                errorAlert.className = `alert alert-${type}`;
+            }
+        }
+    </script>
+</body>
+</html>

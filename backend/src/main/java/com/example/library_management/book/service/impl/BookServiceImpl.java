@@ -13,16 +13,16 @@ import com.example.library_management.common.util.ImageUploadService;
 import com.example.library_management.exceptions.client.ConflictException;
 import com.example.library_management.exceptions.client.InvalidInputException;
 import com.example.library_management.exceptions.client.ResourceNotFoundException;
-import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Date;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @Slf4j
@@ -117,10 +117,16 @@ public class BookServiceImpl implements IBookService {
         return createDtoFromBook(book);
     }
 
+//    @Override
+//    public List<DtoBookResponse> getAllBooks() {
+//        List<Book> all = bookRepository.findAll();
+//        return all.stream().map(this::createDtoFromBook).toList();
+//    }
+
     @Override
-    public List<DtoBookResponse> getAllBooks() {
-        List<Book> all = bookRepository.findAll();
-        return all.stream().map(this::createDtoFromBook).toList();
+    public Page<DtoBookResponse> getAllBooks(Pageable pageable) {
+        Page<Book> bookPage = bookRepository.findAll(pageable);
+        return bookPage.map(this::createDtoFromBook);
     }
 
     @Override

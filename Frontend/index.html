@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kütüphane - Ana Sayfa</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/auth.js"></script>
+    <script>
+        if (!Auth.isLoggedIn()) {
+            window.location.href = '/login.html';
+        }
+    </script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/index.html">Kütüphane</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <span class="navbar-text text-white me-3" id="welcome-message"></span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/index.html">Kitaplar</a>
+                    </li>
+                    <li class="nav-item d-none" id="admin-link">
+                        <a class="nav-link" href="/admin.html">Admin Paneli</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="logout-button">Çıkış Yap <i class="bi bi-box-arrow-right"></i></a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div id="action-alert" class="alert d-none" role="alert"></div>
+
+        <div class="row">
+            <div class="col-lg-4 mb-4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Cezalarım</h5>
+                    </div>
+                    <div id="penalties-loading" class="text-center p-3">
+                        <div class="spinner-border spinner-border-sm" role="status"></div>
+                    </div>
+                    <ul class="list-group list-group-flush" id="penalties-list">
+                        </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Elimdeki Kitaplar</h5>
+                    </div>
+                    <div id="borrowings-loading" class="text-center p-3">
+                        <div class="spinner-border spinner-border-sm" role="status"></div>
+                    </div>
+                    <ul class="list-group list-group-flush" id="borrowings-list">
+                        </ul>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3>Kütüphanedeki Kitaplar</h3>
+                </div>
+                
+                <div id="books-loading" class="text-center p-5">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Yükleniyor...</span>
+                    </div>
+                </div>
+
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="books-grid">
+                    </div>
+
+                <nav aria-label="Kitap Sayfalaması" class="mt-4">
+                    <ul class="pagination justify-content-center" id="pagination-controls">
+                        </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        let CURRENT_USER_ID = null;
+        let currentPage = 0; // Başlangıç sayfası (0-indexed)
+        const pageSize = 6;  // Sayfa başına kitap sayısı
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupNavbar();
+            if(CURRENT_USER_ID) {
+                loadAllData();
+            }
+        });
+
+        function setupNavbar() {
+            const userInfo = Auth.getUserInfo();
+            if (userInfo) {
+                CURRENT_USER_ID = userInfo.userId;
+                document.getElementById('welcome-message').textContent = `Hoşgeldin, ${userInfo.username}`;
+                if (Auth.hasRole('ADMIN')) {
+                    document.getElementById('admin-link').classList.remove('d-none');
+                }
+            } else {
+                Auth.logout();
+            }
+            
+            document.getElementById('logout-button').addEventListener('click', (e) => {
+                e.preventDefault();
+                Auth.logout();
+            });
+        }
+
+        function loadAllData() {
+            loadBooks(currentPage); // İlk sayfayı yükle
+            loadMyBorrowings();
+            loadMyPenalties();
+        }
+        
+        function showAlert(message, type = 'danger') {
+            const alertEl = document.getElementById('action-alert');
+            alertEl.textContent = message;
+            alertEl.className = `alert alert-${type}`;
+            window.scrollTo(0, 0);
+            setTimeout(() => alertEl.className = 'alert d-none', 5000);
+        }
+
+        // --- Kitapları Yükle (Pagination Destekli) ---
+        async function loadBooks(page) {
+            const gridEl = document.getElementById('books-grid');
+            const loadingEl = document.getElementById('books-loading');
+            const paginationEl = document.getElementById('pagination-controls');
+            
+            // Yükleme sırasında içeriği temizle veya opaklaştır
+            gridEl.style.opacity = '0.5'; 
+
+            try {
+                // API'ye sayfa ve boyut bilgisini gönder
+                const response = await Api.getBooks(page, pageSize); //
+                
+                gridEl.innerHTML = '';
+                paginationEl.innerHTML = '';
+                gridEl.style.opacity = '1';
+
+                if (response.success) {
+                    // Spring Page yapısı: response.data.content içinde liste var
+                    // Eğer backend Page değil de direkt List dönüyorsa bu kod hata verebilir, kontrol edilmeli.
+                    // Varsayım: Backend Page yapısı dönüyor.
+                    const books = response.data.content || response.data; // Eğer page değil listse direkt data'yı al
+                    const pageInfo = response.data.totalPages ? response.data : null; 
+
+                    if (books.length > 0) {
+                        books.forEach(book => {
+                            gridEl.appendChild(createBookCard(book));
+                        });
+                        
+                        // Sayfalama butonlarını oluştur (Sadece Page yapısı varsa)
+                        if (pageInfo) {
+                            renderPagination(pageInfo);
+                        }
+                    } else {
+                        gridEl.innerHTML = '<div class="col-12"><p class="text-center text-muted">Kütüphanede hiç kitap bulunamadı veya bu sayfa boş.</p></div>';
+                    }
+                } else {
+                     showAlert(`Kitaplar yüklenemedi: ${response.message}`, 'danger');
+                }
+            } catch (error) {
+                showAlert(`Kitaplar yüklenirken hata oluştu: ${error.message}`, 'danger');
+                gridEl.style.opacity = '1';
+            } finally {
+                loadingEl.classList.add('d-none');
+            }
+        }
+
+        function createBookCard(book) {
+            const col = document.createElement('div');
+            col.className = 'col';
+            
+            const isAvailable = book.situation === 'AVAILABLE';
+            const detailUrl = `/book-detail.html?id=${book.id}`;
+
+            col.innerHTML = `
+                <div class="card h-100 shadow-sm">
+                     <a href="${detailUrl}">
+                        <img src="${book.imageUrl || 'https://via.placeholder.com/150?text=Kapak+Yok'}" class="card-img-top" alt="${book.title}" style="height: 200px; object-fit: cover;">
+                    </a>
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">
+                            <a href="${detailUrl}" class="text-decoration-none text-dark">${book.title}</a>
+                        </h5>
+                        <p class="card-text small text-muted">ISBN: ${book.isbn}</p>
+                        <span class="badge ${isAvailable ? 'bg-success' : 'bg-danger'} mb-2">${book.situation}</span>
+                        <button class="btn btn-primary btn-sm mt-auto btn-borrow" 
+                                data-book-id="${book.id}" ${!isAvailable ? 'disabled' : ''}>
+                            ${isAvailable ? 'Ödünç Al' : 'Mevcut Değil'}
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            col.querySelector('.btn-borrow').addEventListener('click', handleBorrowBook);
+            return col;
+        }
+
+        // --- Sayfalama Butonlarını Oluşturma ---
+        function renderPagination(pageInfo) {
+            const paginationEl = document.getElementById('pagination-controls');
+            const totalPages = pageInfo.totalPages;
+            const current = pageInfo.number; // 0-based (API'den gelen)
+            
+            if (totalPages <= 1) return; // Tek sayfa varsa gösterme
+
+            // Temizle
+            paginationEl.innerHTML = '';
+
+            // Yardımcı fonksiyon: Sayfa butonu oluşturur
+            const createPageItem = (pageIndex, label = null, isActive = false, isDisabled = false) => {
+                const li = document.createElement('li');
+                li.className = `page-item ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`;
+                
+                const a = document.createElement('a');
+                a.className = 'page-link';
+                a.href = '#';
+                a.innerHTML = label || (pageIndex + 1); // Kullanıcıya 1-based göster
+                
+                if (!isDisabled && !isActive) {
+                    a.onclick = (e) => {
+                        e.preventDefault();
+                        loadBooks(pageIndex);
+                    };
+                }
+                
+                li.appendChild(a);
+                return li;
+            };
+
+            // Yardımcı fonksiyon: "..." (Ellipsis) oluşturur
+            const createEllipsis = () => {
+                const li = document.createElement('li');
+                li.className = 'page-item disabled';
+                li.innerHTML = '<span class="page-link">...</span>';
+                return li;
+            };
+
+            // --- ÖNCEKİ Butonu ---
+            paginationEl.appendChild(createPageItem(current - 1, '&laquo;', false, pageInfo.first));
+
+            // --- SAYFA NUMARALARI (Akıllı Mantık) ---
+            const delta = 2; // Mevcut sayfanın sağında ve solunda kaç sayfa gösterilsin?
+            const left = current - delta;
+            const right = current + delta + 1;
+            const range = [];
+            const rangeWithDots = [];
+            let l;
+
+            for (let i = 1; i <= totalPages; i++) {
+                // İlk sayfa, Son sayfa veya aralıktaki sayfalar ise ekle
+                if (i === 1 || i === totalPages || (i >= left + 1 && i < right)) {
+                    range.push(i);
+                }
+            }
+
+            for (let i of range) {
+                if (l) {
+                    if (i - l === 2) {
+                        rangeWithDots.push(l + 1);
+                    } else if (i - l !== 1) {
+                        rangeWithDots.push('...');
+                    }
+                }
+                rangeWithDots.push(i);
+                l = i;
+            }
+
+            // Hesaplanan aralığı butonlara dök
+            rangeWithDots.forEach(page => {
+                if (page === '...') {
+                    paginationEl.appendChild(createEllipsis());
+                } else {
+                    // page 1-based geliyor, fonksiyona 0-based gönderiyoruz (page-1)
+                    paginationEl.appendChild(createPageItem(page - 1, null, (page - 1) === current));
+                }
+            });
+
+            // --- SONRAKİ Butonu ---
+            paginationEl.appendChild(createPageItem(current + 1, '&raquo;', false, pageInfo.last));
+        }
+
+        // --- Ödünç Alma ---
+        async function handleBorrowBook(e) {
+            const bookId = e.target.dataset.bookId;
+            if (!confirm(`Bu kitabı (ID: ${bookId}) ödünç almak istediğinizden emin misiniz?`)) return;
+            try {
+                const response = await Api.borrowBook(bookId);
+                if(response.success) {
+                    showAlert('Kitap başarıyla ödünç alındı.', 'success');
+                    loadAllData();
+                } else {
+                    showAlert(`Hata: ${response.message}`);
+                }
+            } catch (error) {
+                showAlert('Ödünç alma işlemi başarısız.');
+            }
+        }
+
+        // --- İade Etme ---
+        async function handleReturnBook(e) {
+            const borrowingId = e.target.dataset.borrowId;
+            if (!confirm(`Bu kitabı iade etmek istediğinizden emin misiniz?`)) return;
+            try {
+                const response = await Api.returnBook(borrowingId);
+                if(response.success) {
+                    showAlert('Kitap başarıyla iade edildi.', 'success');
+                    if (response.data.penaltyCost > 0) {
+                         showAlert(`${response.data.penaltyCost} TL ceza uygulandı!`, 'warning');
+                    }
+                    loadAllData();
+                } else {
+                    showAlert(`Hata: ${response.message}`);
+                }
+            } catch (error) {
+                showAlert('İade işlemi başarısız.');
+            }
+        }
+
+        // --- Ödünç Alınanları Yükle ---
+        async function loadMyBorrowings() {
+            const listEl = document.getElementById('borrowings-list');
+            const loadingEl = document.getElementById('borrowings-loading');
+            try {
+                const response = await Api.getMyBorrowings(CURRENT_USER_ID);
+                listEl.innerHTML = '';
+                let hasUnreturnedBooks = false; 
+
+                if (response.success && response.data.length > 0) {
+                    response.data.forEach(item => {
+                        if (!item.returnDate) { 
+                            hasUnreturnedBooks = true; 
+                            const li = document.createElement('li');
+                            li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                            
+                            const isOverdue = new Date(item.lastReturnDate) < new Date();
+                            const dateColor = isOverdue ? 'text-danger' : 'text-muted';
+
+                            li.innerHTML = `
+                                <div>
+                                    Kitap ID: ${item.bookId} <br>
+                                    <small class="${dateColor}">Son İade: ${new Date(item.lastReturnDate).toLocaleDateString()}</small>
+                                </div>
+                                <button class="btn btn-warning btn-sm btn-return" data-borrow-id="${item.borrowingId}">İade Et</button>
+                            `;
+                            li.querySelector('.btn-return').addEventListener('click', handleReturnBook);
+                            listEl.appendChild(li);
+                        }
+                    });
+
+                    if (!hasUnreturnedBooks) {
+                        listEl.innerHTML = '<li class="list-group-item">Şu an elinizde ödünç kitap bulunmuyor.</li>';
+                    }
+                } else {
+                    listEl.innerHTML = '<li class="list-group-item">Şu an elinizde ödünç kitap bulunmuyor.</li>';
+                }
+            } catch (error) {
+                listEl.innerHTML = '<li class="list-group-item list-group-item-danger">Ödünç bilgisi yüklenemedi.</li>';
+            } finally {
+                loadingEl.classList.add('d-none');
+            }
+        }
+
+        // --- Cezaları Yükle ---
+        async function loadMyPenalties() {
+            const listEl = document.getElementById('penalties-list');
+            const loadingEl = document.getElementById('penalties-loading');
+            try {
+                const response = await Api.getMyPenalties();
+                listEl.innerHTML = '';
+                if (response.success && response.data.length > 0) {
+                    response.data.forEach(penalty => {
+                        const isPaid = penalty.stateOfPenalty === 'PAID'; 
+                        const li = document.createElement('li');
+                        li.className = `list-group-item d-flex justify-content-between align-items-center ${isPaid ? 'list-group-item-success' : 'list-group-item-danger'}`;
+                        li.innerHTML = `
+                            <div>
+                                Borç: ${penalty.amount} TL
+                                <span class="badge ${isPaid ? 'bg-success' : 'bg-danger'}">${penalty.stateOfPenalty}</span>
+                            </div>
+                            ${!isPaid ? `<button class="btn btn-success btn-sm btn-pay" data-penalty-id="${penalty.penaltyId}" data-amount="${penalty.amount}">Öde</button>` : ''}
+                        `;
+                        if (!isPaid) {
+                             li.querySelector('.btn-pay').addEventListener('click', handlePayPenalty);
+                        }
+                        listEl.appendChild(li);
+                    });
+                } else {
+                    listEl.innerHTML = '<li class="list-group-item">Hiç cezanız bulunmuyor.</li>';
+                }
+            } catch (error) {
+                // Cezası yoksa 404 dönebilir, bu normal
+                listEl.innerHTML = '<li class="list-group-item">Hiç cezanız bulunmuyor.</li>';
+            } finally {
+                loadingEl.classList.add('d-none');
+            }
+        }
+        
+        async function handlePayPenalty(e) {
+            const { penaltyId, amount } = e.target.dataset;
+            if (!confirm(`${amount} TL tutarındaki cezayı ödemek istediğinizden emin misiniz?`)) return;
+            try {
+                const response = await Api.payPenalty(penaltyId, amount); 
+                if(response.success) {
+                    showAlert('Ceza başarıyla ödendi.', 'success');
+                    loadMyPenalties(); 
+                } else {
+                    showAlert(`Hata: ${response.message}`);
+                }
+            } catch (error) {
+                 showAlert('Ödeme işlemi başarısız.');
+            }
+        }
+    </script>
+</body>
+</html>
