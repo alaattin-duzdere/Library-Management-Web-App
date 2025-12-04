@@ -1,0 +1,209 @@
+// js/api.js
+
+const Api = {
+    BASE_URL: "http://localhost:8080", // Backend adresiniz
+
+    /**
+     * Merkezi fetch fonksiyonu. Token ekler ve hataları yönetir.
+     */
+    fetch: async (endpoint, options = {}) => {
+        const url = `${Api.BASE_URL}${endpoint}`;
+        
+        const headers = {
+            "Content-Type": "application/json",
+            ...options.headers,
+        };
+
+        const token = Auth.getAccessToken();
+        if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+        }
+
+        // FormData gönderiliyorsa Content-Type'ı sil (tarayıcı halletsin)
+        if (options.body instanceof FormData) {
+            delete headers['Content-Type'];
+        }
+
+        try {
+            const response = await fetch(url, { ...options, headers });
+
+            // 401 Unauthorized
+            if (response.status === 401) {
+                if (window.location.pathname !== '/login.html' && window.location.pathname !== '/register.html') { 
+                    console.error("Yetkisiz (401). Oturum sonlandırılıyor.");
+                    Auth.logout();
+                    return { success: false, message: "Oturum süresi doldu" }; 
+                }
+            }
+            
+            // 403 Forbidden (Yasaklı)
+            if (response.status === 403) {
+                // EĞER login sayfasında DEĞİLSEK:
+                if (window.location.pathname !== '/login.html') { 
+                    alert("Bu işlem için yetkiniz bulunmamaktadır.");
+                }
+                
+            }
+            // 204 No Content (örn: Logout)
+            if (response.status === 204 || response.headers.get("content-length") === "0") {
+                return { success: true, data: null };
+            }
+
+            // "RESPONSE'UN KENDİ CEVABININ" OKUNDUĞU YER
+            const data = await response.json(); 
+
+            if (!response.ok) {
+                // Hata body'den (data.message) okunur
+                throw new Error(data.message); // <-- "User... not verified" mesajı buradan fırlatılır
+            }
+
+            return data; // Başarılı { success: true, data: ... }
+
+        } catch (error) {
+            console.error(`API Hatası (${endpoint}):`, error);
+            return { success: false, message: error.message };
+        }
+    },
+
+    // --- Auth Endpoints ---
+    login: (email, password) => {
+        return Api.fetch("/api/auth/login", {
+            method: "POST",
+            body: JSON.stringify({ email, password })
+        });
+    },
+    
+    register: (username, email, password) => {
+        return Api.fetch("/api/auth/register", {
+            method: "POST",
+            body: JSON.stringify({ username, email, password })
+        });
+    },
+    
+    forgotPassword: (email) => {
+         return Api.fetch("/api/auth/forgot-password", {
+            method: "POST",
+            body: JSON.stringify({ email })
+        });
+    },
+
+    resetPassword: (token, newPassword, confirmNewPassword) => {
+        return Api.fetch("/api/auth/reset-password-submit", { //
+            method: "POST",
+            body: JSON.stringify({ 
+                token: token,
+                newPassword: newPassword,
+                confirmNewPassword: confirmNewPassword
+            })
+        });
+    },
+    
+    logout: () => {
+        // Token, Api.fetch tarafından headera eklenecek
+        return Api.fetch("/api/auth/logout", { 
+            method: "POST" 
+        });
+    },
+
+    // --- Author Endpoints ---
+    getAuthors: () => {
+        return Api.fetch("/api/author", { method: "GET" });
+    },
+    createAuthor: (authorData) => {
+        return Api.fetch("/api/admin/author", {
+            method: "POST",
+            body: JSON.stringify(authorData)
+        });
+    },
+    updateAuthor: (id, authorData) => {
+        return Api.fetch(`/api/admin/author/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(authorData)
+        });
+    },
+    deleteAuthor: (id) => {
+        return Api.fetch(`/api/admin/author/${id}`, { method: "DELETE" });
+    },
+
+    // --- Category Endpoints ---
+    getCategories: () => {
+        return Api.fetch("/api/categories", { method: "GET" });
+    },
+    createCategory: (categoryData) => {
+        return Api.fetch("/api/admin/categories", {
+            method: "POST",
+            body: JSON.stringify(categoryData)
+        });
+    },
+    updateCategory: (id, categoryData) => {
+        return Api.fetch(`/api/admin/categories/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(categoryData)
+        });
+    },
+    deleteCategory: (id) => {
+        return Api.fetch(`/api/admin/categories/${id}`, { method: "DELETE" });
+    },
+
+    // Pagination destekli getBooks
+    getBooks: (page = 0, size = 6) => {
+        // Backend URL: /api/books?page=0&size=6
+        return Api.fetch(`/api/books?page=${page}&size=${size}`, { method: "GET" });
+    },
+    
+    getBookById: (bookId) => {
+        return Api.fetch(`/api/books/${bookId}`, { method: "GET" }); //
+    },
+    
+    getBookByIsbn: (isbn) => {
+        return Api.fetch(`/api/books/isbn/${isbn}`, { method: "GET" }); //
+    },
+    
+    createBook: (bookData) => { 
+        return Api.fetch("/api/books", { 
+            method: "POST",
+            body: JSON.stringify(bookData)
+        });
+    },
+    updateBook: (id, bookData) => {
+        return Api.fetch(`/api/books/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(bookData)
+        });
+    },
+    deleteBook: (id) => {
+        return Api.fetch(`/api/books/${id}`, { method: "DELETE" });
+    },
+    uploadBookImage: (bookId, formData) => {
+        return Api.fetch(`/${bookId}/upload-photo`, { 
+            method: "POST",
+            body: formData 
+        });
+    },
+
+    // --- YENİ: Borrowing Endpoints ---
+    borrowBook: (bookId) => {
+        return Api.fetch(`/api/borrow/${bookId}`, { method: "POST" });
+    },
+    returnBook: (borrowingId) => {
+        return Api.fetch(`/api/borrow/return/${borrowingId}`, { method: "POST" });
+    },
+    getMyBorrowings: (userId) => {
+        //
+        return Api.fetch(`/api/borrow/user/${userId}`, { method: "GET" });
+    },
+
+    // --- YENİ: Penalty Endpoints ---
+    getMyPenalties: () => {
+        //
+        return Api.fetch('/api/penalties/my-penalties', { method: "GET" });
+    },
+    payPenalty: (penaltyId, amount) => {
+        return Api.fetch('/api/penalties/pay', {
+            method: "POST",
+            body: JSON.stringify({ penaltyId, amount }) //
+        });
+    }
+
+
+};
