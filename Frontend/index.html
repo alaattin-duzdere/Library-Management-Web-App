@@ -7,6 +7,18 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Kitap başlığını 2 satırla sınırla ve sabit yükseklik ver */
+        .book-card-title {
+            display: -webkit-box;
+            -webkit-line-clamp: 2; /* En fazla 2 satır göster */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            height: 3em; /* Yaklaşık 2 satırlık sabit yükseklik (Yazı boyutuna göre ayarlanabilir) */
+            margin-bottom: 0.5rem;
+            line-height: 1.5em;
+        }
+    </style>
     <script src="js/auth.js"></script>
     <script>
         if (!Auth.isLoggedIn()) {
@@ -79,7 +91,7 @@
                     </div>
                 </div>
 
-                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="books-grid">
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4" id="books-grid">
                     </div>
 
                 <nav aria-label="Kitap Sayfalaması" class="mt-4">
@@ -95,7 +107,7 @@
     <script>
         let CURRENT_USER_ID = null;
         let currentPage = 0; // Başlangıç sayfası (0-indexed)
-        const pageSize = 6;  // Sayfa başına kitap sayısı
+        const pageSize = 8;  // Sayfa başına kitap sayısı
 
         document.addEventListener('DOMContentLoaded', () => {
             setupNavbar();
@@ -189,19 +201,27 @@
             
             const isAvailable = book.situation === 'AVAILABLE';
             const detailUrl = `/book-detail.html?id=${book.id}`;
+            
+            // Placeholder Görseli
+            const imageUrl = book.imageUrl || 'https://placehold.co/400x600?text=Kapak+Yok';
 
             col.innerHTML = `
                 <div class="card h-100 shadow-sm">
                      <a href="${detailUrl}">
-                        <img src="${book.imageUrl || 'https://via.placeholder.com/150?text=Kapak+Yok'}" class="card-img-top" alt="${book.title}" style="height: 200px; object-fit: cover;">
+                        <img src="${imageUrl}" class="card-img-top" alt="${book.title}" style="height: 300px; object-fit: cover;">
                     </a>
                     <div class="card-body d-flex flex-column">
-                        <h5 class="card-title">
+                        <h5 class="card-title book-card-title" title="${book.title}">
                             <a href="${detailUrl}" class="text-decoration-none text-dark">${book.title}</a>
                         </h5>
-                        <p class="card-text small text-muted">ISBN: ${book.isbn}</p>
-                        <span class="badge ${isAvailable ? 'bg-success' : 'bg-danger'} mb-2">${book.situation}</span>
-                        <button class="btn btn-primary btn-sm mt-auto btn-borrow" 
+                        
+                        <p class="card-text small text-muted mb-1 text-center">ISBN: ${book.isbn}</p>
+                        
+                        <div class="mb-auto text-center">
+                            <span class="badge ${isAvailable ? 'bg-success' : 'bg-danger'}">${book.situation}</span>
+                        </div>
+                        
+                        <button class="btn btn-primary btn-sm mt-3 w-100 btn-borrow" 
                                 data-book-id="${book.id}" ${!isAvailable ? 'disabled' : ''}>
                             ${isAvailable ? 'Ödünç Al' : 'Mevcut Değil'}
                         </button>
