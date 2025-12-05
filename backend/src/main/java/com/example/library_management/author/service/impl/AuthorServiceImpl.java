@@ -8,6 +8,8 @@ import com.example.library_management.author.service.IAuthorService;
 import com.example.library_management.exceptions.client.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -50,14 +52,14 @@ public class AuthorServiceImpl implements IAuthorService {
     }
 
     @Override
-    public List<DtoAuthorResponse> getAllAuthors() {
-        List<Author> all = authorRepository.findAll();
-
-        List<DtoAuthorResponse> dtoAuthorResponses = new ArrayList<>();
-        for (Author author : all) {
-            dtoAuthorResponses.add(AuthorToDtoAuthorResponse(author));
+    public Page<DtoAuthorResponse> getAllAuthors(String query, Pageable pageable) {
+        Page<Author> authors;
+        if (query != null && !query.isEmpty()) {
+            authors = authorRepository.findByFullNameContainingIgnoreCase(query, pageable);
+        } else {
+            authors = authorRepository.findAll(pageable);
         }
-        return dtoAuthorResponses;
+        return authors.map(this::AuthorToDtoAuthorResponse);
     }
 
     @Override
