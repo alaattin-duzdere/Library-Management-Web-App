@@ -2,8 +2,8 @@ package com.example.library_management.category.service;
 
 import com.example.library_management.category.dto.DtoCategoryRequest;
 import com.example.library_management.category.dto.DtoCategoryResponse;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface ICategoryService {
 
@@ -11,7 +11,7 @@ public interface ICategoryService {
 
     DtoCategoryResponse getCategoryById(Long id);
 
-    List<DtoCategoryResponse> getAllCategories();
+    Page<DtoCategoryResponse> getAllCategories(String query, Pageable pageable);
 
     DtoCategoryResponse updateCategory(Long id, DtoCategoryRequest input);
 

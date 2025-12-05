@@ -2,9 +2,13 @@ package com.example.library_management.category.repository;
 
 import com.example.library_management.category.model.Category;
 import jakarta.persistence.Lob;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CategoryRepository extends JpaRepository<Category,Long> {
 
     boolean existsByCategoryName(String categoryName);
+
+    Page<Category> findByCategoryNameContainingIgnoreCase(String categoryName, Pageable pageable);
 }

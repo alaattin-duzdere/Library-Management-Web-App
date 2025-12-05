@@ -8,6 +8,8 @@ import com.example.library_management.category.service.ICategoryService;
 import com.example.library_management.exceptions.client.ConflictException;
 import com.example.library_management.exceptions.client.ResourceNotFoundException;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -52,14 +54,14 @@ public class CategoryServiceImpl implements ICategoryService {
     }
 
     @Override
-    public List<DtoCategoryResponse> getAllCategories() {
-        List<Category> all = categoryRepository.findAll();
-
-        List<DtoCategoryResponse> responseList = new ArrayList<>();
-        for (Category category : all) {
-            responseList.add(categoryToDtoCategoryResponse(category));
+    public Page<DtoCategoryResponse> getAllCategories(String query, Pageable pageable) {
+        Page<Category> categories;
+        if (query != null && !query.isEmpty()) {
+            categories = categoryRepository.findByCategoryNameContainingIgnoreCase(query, pageable);
+        } else {
+            categories = categoryRepository.findAll(pageable);
         }
-        return responseList;
+        return categories.map(this::categoryToDtoCategoryResponse);
     }
 
     @Override
