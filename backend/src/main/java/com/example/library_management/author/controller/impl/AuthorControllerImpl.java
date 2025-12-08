@@ -45,7 +45,7 @@ public class AuthorControllerImpl implements IAuthorController {
             @RequestParam(value = "size", defaultValue = "10") int size,
             @RequestParam(value = "search", required = false) String search
     ) {
-        PageRequest pageable = PageRequest.of(page, size, Sort.by("createTime").descending());
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("firstName").ascending());
 
         CustomResponseBody<Page<DtoAuthorResponse>> body = CustomResponseBody.ok(authorService.getAllAuthors(search,pageable), "Authors retrieved successfully");
         return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));

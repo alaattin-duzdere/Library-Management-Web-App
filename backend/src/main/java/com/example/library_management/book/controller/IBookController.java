@@ -20,7 +20,7 @@ public interface IBookController {
 
     ResponseEntity<CustomResponseBody<DtoBookResponse>> getBookByIsbn(Long isbn);
 
-    ResponseEntity<CustomResponseBody<Page<DtoBookResponse>>> getAllBooks(Pageable pageable);
+    ResponseEntity<CustomResponseBody<Page<DtoBookResponse>>> getAllBooks(Pageable pageable,String search, Long categoryId, Long authorId);
 
     ResponseEntity<CustomResponseBody<DtoBookResponse>> updateBook(Long bookId, DtoBookRequest dtoBookRequest);
 

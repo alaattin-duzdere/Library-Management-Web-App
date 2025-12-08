@@ -37,7 +37,7 @@ public class CategoryControllerImpl implements ICategoryController {
             @RequestParam(value = "size", defaultValue = "10") int size,
             @RequestParam(value = "search", required = false) String search
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createTime").descending());
+        Pageable pageable = PageRequest.of(page, size, Sort.by("categoryName").ascending());
         CustomResponseBody<Page<DtoCategoryResponse>> body = CustomResponseBody.ok(categoryService.getAllCategories(search,pageable), " Categories retrieved successfully");
         return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
     }

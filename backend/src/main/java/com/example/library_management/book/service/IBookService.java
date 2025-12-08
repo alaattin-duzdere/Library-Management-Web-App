@@ -16,7 +16,7 @@ public interface IBookService {
 
     DtoBookResponse getBookByIsbn(Long isbn);
 
-    Page<DtoBookResponse> getAllBooks(Pageable pageable);
+    Page<DtoBookResponse> getAllBooks(Pageable pageable,String search, Long categoryId, Long authorId);
 
     DtoBookResponse updateBook(Long bookId, DtoBookRequest dtoBookRequest);
 

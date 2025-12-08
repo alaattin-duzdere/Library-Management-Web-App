@@ -118,14 +118,18 @@ public class BookServiceImpl implements IBookService {
     }
 
 //    @Override
-//    public List<DtoBookResponse> getAllBooks() {
-//        List<Book> all = bookRepository.findAll();
-//        return all.stream().map(this::createDtoFromBook).toList();
+//    public Page<DtoBookResponse> getAllBooks(Pageable pageable, String query) {
+//        if (query!=null && !query.isEmpty()){
+//            Page<Book> bookPage = bookRepository.findByTitleContainingIgnoreCase(query, pageable);
+//            return bookPage.map(this::createDtoFromBook);
+//        }
+//        Page<Book> bookPage = bookRepository.findAll(pageable);
+//        return bookPage.map(this::createDtoFromBook);
 //    }
 
     @Override
-    public Page<DtoBookResponse> getAllBooks(Pageable pageable) {
-        Page<Book> bookPage = bookRepository.findAll(pageable);
+    public Page<DtoBookResponse> getAllBooks(Pageable pageable, String search, Long categoryId, Long authorId) {
+        Page<Book> bookPage = bookRepository.searchBooks(search, categoryId, authorId, pageable);
         return bookPage.map(this::createDtoFromBook);
     }
 

@@ -54,28 +54,45 @@ public class BookControllerImpl implements IBookController {
     }
 
     /**
-     * <p><strong>Kullanım Örnekleri:</strong></p>
+     * Kitapları listeler; arama, kategori/yazar filtreleme ve sayfalama özelliklerini destekler.
+     * İstemci, bu parametrelerin herhangi bir kombinasyonunu kullanarak sonuçları daraltabilir.
+     *
+     * <p><strong>Kullanım Senaryoları:</strong></p>
      * <ul>
-     * <li><strong>Varsayılan (İlk 10 kitap):</strong> <br>
-     * <code>GET /api/kitaplar</code></li>
+     * <li><strong>Tüm kitapları getir (Varsayılan):</strong> <br>
+     * <code>GET /api/books</code></li>
      *
-     * <li><strong>Belirli bir sayfa (2. sayfa):</strong> <br>
-     * <code>GET /api/kitaplar?page=1</code> (Not: Sayfa indeksi 0'dan başlar)</li>
+     * <li><strong>Genel Arama (Başlık, ISBN veya Yazar Adı):</strong> <br>
+     * <code>GET /api/books?search=Yüzüklerin Efendisi</code></li>
      *
-     * <li><strong>Sayfa boyutunu değiştirme (Tek seferde 50 kitap):</strong> <br>
-     * <code>GET /api/kitaplar?size=50</code></li>
+     * <li><strong>Belirli bir kategoriye göre filtrele:</strong> <br>
+     * <code>GET /api/books?categoryId=5</code></li>
      *
-     * <li><strong>Sıralama (Fiyata göre azalan):</strong> <br>
-     * <code>GET /api/kitaplar?sort=fiyat,desc</code></li>
+     * <li><strong>Belirli bir yazara göre filtrele:</strong> <br>
+     * <code>GET /api/books?authorId=12</code></li>
      *
-     * <li><strong>Karmaşık Sorgu (3. sayfa, 20 kayıt, isme göre artan):</strong> <br>
-     * <code>GET /api/kitaplar?page=2&size=20&sort=baslik,asc</code></li>
+     * <li><strong>Çoklu Filtreleme (Bilim Kurgu kategorisindeki, "Dune" içeren kitaplar):</strong> <br>
+     * <code>GET /api/books?categoryId=3&search=Dune</code></li>
+     *
+     * <li><strong>Sayfalama ve Sıralama (2. sayfa, 20 kayıt, fiyata göre artan):</strong> <br>
+     * <code>GET /api/books?page=1&size=20&sort=price,asc</code></li>
      * </ul>
+     *
+     * @param pageable   Sayfa numarası (page), boyutu (size) ve sıralama (sort) bilgileri.
+     * @param search     (Opsiyonel) Kitap başlığı, ISBN veya yazar isminde aranacak metin.
+     * @param categoryId (Opsiyonel) Filtrelenecek kategorinin ID'si.
+     * @param authorId   (Opsiyonel) Filtrelenecek yazarın ID'si.
+     * @return Filtrelenmiş kitap listesi ve sayfa bilgilerini içeren JSON yanıtı.
      */
     @GetMapping("/api/books")
     @Override
-    public ResponseEntity<CustomResponseBody<Page<DtoBookResponse>>> getAllBooks(@PageableDefault(page = 0, size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) { // Default pagination
-        CustomResponseBody<Page<DtoBookResponse>> body = CustomResponseBody.ok(bookService.getAllBooks(pageable), " All books retrieved successfully");
+    public ResponseEntity<CustomResponseBody<Page<DtoBookResponse>>> getAllBooks(
+            @PageableDefault(page = 0, size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable, // Default pagination
+            @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "categoryId", required = false) Long categoryId,
+            @RequestParam(value = "authorId", required = false) Long authorId
+    ) {
+        CustomResponseBody<Page<DtoBookResponse>> body = CustomResponseBody.ok(bookService.getAllBooks(pageable,search,categoryId,authorId), " All books retrieved successfully");
         return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
     }
 
