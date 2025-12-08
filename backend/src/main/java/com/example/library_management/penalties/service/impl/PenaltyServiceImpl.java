@@ -55,7 +55,6 @@ public class PenaltyServiceImpl implements IPenaltyService {
         List<DtoPenaltyResponse> listOfDtoPenalties = penalties.stream()
                 .map(this::penaltyToDtoPenaltyResponse)
                 .toList();
-        log.warn(listOfDtoPenalties.toString());
 
         return listOfDtoPenalties;
     }

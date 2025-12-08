@@ -74,7 +74,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http, CorsConfigurationSource corsConfigurationSource) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource))
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(request -> request
                         .requestMatchers(passwordResetEndpoint,registerEndpoint,resendVerificationEndpoint,loginEndpoint,refreshEndpoint,verifyEndpoint,forgotPasswordEndpoint, resetPasswordHandlerEndpoint, passwordResetEndpoint).permitAll()
                         .requestMatchers("/media/images/**").permitAll()
@@ -115,6 +115,9 @@ public class SecurityConfig {
 
         // 4. Allow credentials (if using cookies/sessions)
         configuration.setAllowCredentials(true);
+
+        // Tarayıcıya bu ayarları 1 saat (3600 sn) boyunca sorma diyoruz.
+        configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration); // Apply to all paths
