@@ -15,10 +15,7 @@
         }
     </script>
     <style>
-        /* Sayfaya özel stiller */
-        body {
-            background-color: #f8f9fa; 
-        }
+        body { background-color: #f8f9fa; }
         .book-detail-container {
             background-color: #fff;
             border-radius: 8px;
@@ -38,57 +35,30 @@
             margin-bottom: 12px;
             font-size: 1.1rem;
         }
-        .info-item strong {
-            min-width: 140px; 
-            margin-right: 10px;
-            color: #495057;
-        }
-        .info-item .bi {
-            margin-right: 10px;
-            color: #6c757d;
-        }
-        .list-unstyled li {
-            margin-bottom: 5px;
-            padding-left: 10px;
-            border-left: 3px solid #0d6efd; 
-        }
+        .info-item strong { min-width: 140px; margin-right: 10px; color: #495057; }
+        .list-unstyled li { margin-bottom: 5px; padding-left: 10px; border-left: 3px solid #0d6efd; }
         .btn-borrow {
             font-size: 1.2rem;
             padding: 12px 30px;
             border-radius: 50px;
             transition: all 0.3s ease;
         }
-        .btn-borrow:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        .situation-badge {
-            font-size: 1rem;
-            padding: 0.5em 1em;
-        }
+        .situation-badge { font-size: 1rem; padding: 0.5em 1em; }
     </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="/index.html">Kütüphane</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <span class="navbar-text text-white me-3" id="welcome-message"></span>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/index.html">Kitaplar</a>
-                    </li>
-                    <li class="nav-item d-none" id="admin-link">
-                        <a class="nav-link" href="/admin.html">Admin Paneli</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" id="logout-button">Çıkış Yap <i class="bi bi-box-arrow-right"></i></a>
-                    </li>
+                    <li class="nav-item"><span class="navbar-text text-white me-3" id="welcome-message"></span></li>
+                    <li class="nav-item"><a class="nav-link" href="/index.html">Kitaplar</a></li>
+                    <li class="nav-item d-none" id="admin-link"><a class="nav-link" href="/admin.html">Admin Paneli</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" id="logout-button">Çıkış Yap <i class="bi bi-box-arrow-right"></i></a></li>
                 </ul>
             </div>
         </div>
@@ -98,10 +68,8 @@
         <div id="action-alert" class="alert d-none" role="alert"></div>
 
         <div id="loading-spinner" class="text-center p-5">
-            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
-                <span class="visually-hidden">Yükleniyor...</span>
-            </div>
-            <p class="mt-2 text-muted">Kitap detayları yükleniyor...</p>
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
+            <p class="mt-2 text-muted">Kitap bilgileri alınıyor...</p>
         </div>
 
         <div id="book-content" class="row d-none book-detail-container">
@@ -109,50 +77,31 @@
                 <img id="book-cover" src="https://via.placeholder.com/300x450?text=Kapak+Yok" class="book-cover-img" alt="Kitap Kapağı">
             </div>
             <div class="col-md-8 d-flex flex-column justify-content-center">
-                <h1 id="book-title" class="mb-4 display-5 fw-bold text-dark">Kitap Başlığı</h1>
+                <h1 id="book-title" class="mb-4 display-5 fw-bold text-dark"></h1>
                 
-                <div class="info-item">
-                    <i class="bi bi-info-circle-fill"></i>
-                    <strong>Durum:</strong> 
-                    <span id="book-situation" class="badge situation-badge"></span>
-                </div>
-                
-                <div class="info-item">
-                    <i class="bi bi-upc-scan"></i>
-                    <strong>ISBN:</strong> <span id="book-isbn" class="text-dark"></span>
-                </div>
-                
-                <div class="info-item">
-                    <i class="bi bi-file-earmark-text-fill"></i>
-                    <strong>Sayfa Sayısı:</strong> <span id="book-pages" class="text-dark"></span>
-                </div>
+                <div class="info-item"><i class="bi bi-info-circle-fill me-2 text-secondary"></i><strong>Durum:</strong> <span id="book-situation" class="badge situation-badge"></span></div>
+                <div class="info-item"><i class="bi bi-upc-scan me-2 text-secondary"></i><strong>ISBN:</strong> <span id="book-isbn" class="text-dark"></span></div>
+                <div class="info-item"><i class="bi bi-file-earmark-text-fill me-2 text-secondary"></i><strong>Sayfa Sayısı:</strong> <span id="book-pages" class="text-dark"></span></div>
                 
                 <hr class="my-4">
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <div class="info-item mb-2 text-primary">
-                            <i class="bi bi-person-lines-fill"></i>
-                            <strong>Yazar(lar):</strong>
-                        </div>
+                        <div class="info-item mb-2 text-primary"><i class="bi bi-person-lines-fill me-2"></i><strong>Yazar(lar):</strong></div>
                         <ul id="book-authors-list" class="list-unstyled ms-4 ps-1 text-secondary">
-                            </ul>
+                            <li class="text-muted"><small>Yükleniyor...</small></li>
+                        </ul>
                     </div>
-                    
                     <div class="col-md-6 mb-3">
-                        <div class="info-item mb-2 text-primary">
-                            <i class="bi bi-tags-fill"></i>
-                            <strong>Kategori(ler):</strong>
-                        </div>
+                        <div class="info-item mb-2 text-primary"><i class="bi bi-tags-fill me-2"></i><strong>Kategori(ler):</strong></div>
                         <ul id="book-categories-list" class="list-unstyled ms-4 ps-1 text-secondary">
-                            </ul>
+                            <li class="text-muted"><small>Yükleniyor...</small></li>
+                        </ul>
                     </div>
                 </div>
                 
                 <div class="mt-auto pt-3">
-                    <button class="btn btn-primary btn-borrow w-100 w-md-auto" id="btn-borrow">
-                        <i class="bi bi-book"></i> Ödünç Al
-                    </button>
+                    <button class="btn btn-primary btn-borrow w-100 w-md-auto" id="btn-borrow"><i class="bi bi-book"></i> Ödünç Al</button>
                 </div>
             </div>
         </div>
@@ -163,43 +112,24 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             setupNavbar();
-            
-            const bookId = getBookIdFromUrl();
-            if (bookId) {
-                loadBookDetails(bookId);
-            } else {
-                showAlert('Geçersiz kitap ID.', 'danger');
-                document.getElementById('loading-spinner').classList.add('d-none');
-            }
+            const bookId = new URLSearchParams(window.location.search).get('id');
+            if (bookId) loadBookDetails(bookId);
+            else { showAlert('Geçersiz kitap ID.', 'danger'); document.getElementById('loading-spinner').classList.add('d-none'); }
         });
 
         function setupNavbar() {
             const userInfo = Auth.getUserInfo();
             if (userInfo) {
                 document.getElementById('welcome-message').textContent = `Hoşgeldin, ${userInfo.username}`;
-                if (Auth.hasRole('ADMIN')) {
-                    document.getElementById('admin-link').classList.remove('d-none');
-                }
-            } else {
-                Auth.logout(); 
-            }
-            document.getElementById('logout-button').addEventListener('click', (e) => {
-                e.preventDefault();
-                Auth.logout();
-            });
+                if (Auth.hasRole('ADMIN')) document.getElementById('admin-link').classList.remove('d-none');
+            } else Auth.logout();
+            document.getElementById('logout-button').addEventListener('click', (e) => { e.preventDefault(); Auth.logout(); });
         }
 
         function showAlert(message, type = 'danger') {
             const alertEl = document.getElementById('action-alert');
-            alertEl.textContent = message;
-            alertEl.className = `alert alert-${type}`;
-            window.scrollTo(0, 0);
-            setTimeout(() => alertEl.className = 'alert d-none', 5000);
-        }
-
-        function getBookIdFromUrl() {
-            const params = new URLSearchParams(window.location.search);
-            return params.get('id');
+            alertEl.textContent = message; alertEl.className = `alert alert-${type}`;
+            window.scrollTo(0, 0); setTimeout(() => alertEl.className = 'alert d-none', 5000);
         }
 
         async function loadBookDetails(bookId) {
@@ -207,128 +137,81 @@
             const contentEl = document.getElementById('book-content');
 
             try {
-                // Yazar ve Kategorileri çekerken sayfa boyutunu büyük tutalım (örn: 1000)
-                // Böylece isimleri ID'lerden bulabiliriz.
-                const [bookRes, authorsRes, categoriesRes] = await Promise.all([
-                    Api.getBookById(bookId),
-                    Api.getAuthors(0, 1000), 
-                    Api.getCategories(0, 1000)
-                ]);
-
-                if (!bookRes.success) {
-                    throw new Error(bookRes.message || 'Kitap bulunamadı.');
-                }
+                // 1. ADIM: Sadece Kitabı Çek
+                const bookRes = await Api.getBookById(bookId);
+                if (!bookRes.success) throw new Error(bookRes.message || 'Kitap bulunamadı.');
                 const book = bookRes.data;
 
-                // *** DÜZELTME (ForEach Hatası İçin) ***
-                // Backend 'Page' dönüyorsa dizi '.content' içindedir. 
-                // 'List' dönüyorsa direkt '.data' içindedir.
-                const authorsList = authorsRes.data.content || authorsRes.data || [];
-                const categoriesList = categoriesRes.data.content || categoriesRes.data || [];
-
-                // Map oluştur (ID -> İsim eşleşmesi için)
-                const authorMap = new Map();
-                if (Array.isArray(authorsList)) {
-                    authorsList.forEach(author => {
-                        authorMap.set(author.id, `${author.firstName} ${author.lastName}`);
-                    });
-                }
-                                                                                                                    
-                const categoryMap = new Map();
-                if (Array.isArray(categoriesList)) {
-                    categoriesList.forEach(cat => {
-                        categoryMap.set(cat.id, cat.categoryName);                                                                                                                                                                          
-                    });
-                }
-
-                // HTML Doldur
-                document.getElementById('book-title').textContent = book.title;                                                                                                                                                                             
+                // Ana Bilgileri Doldur
+                document.getElementById('book-title').textContent = book.title;
                 document.getElementById('book-cover').src = book.imageUrl || 'https://placehold.co/400x600?text=Kapak+Yok';
-                document.getElementById('book-isbn').textContent = book.isbn;
+                document.getElementById('book-isbn').textContent = book.isbn || '-';
                 document.getElementById('book-pages').textContent = book.numberOfPages;
 
-                // Durum (Situation)
-                const situationEl = document.getElementById('book-situation');
-                const isAvailable = book.situation === 'AVAILABLE';
-                situationEl.textContent = book.situation;
-                situationEl.className = `badge situation-badge ${isAvailable ? 'bg-success' : 'bg-danger'}`;
+                const sitEl = document.getElementById('book-situation');
+                const isAvail = book.situation === 'AVAILABLE';
+                sitEl.textContent = book.situation;
+                sitEl.className = `badge situation-badge ${isAvail ? 'bg-success' : 'bg-danger'}`;
 
-                // Ödünç Al Butonu
-                const borrowButton = document.getElementById('btn-borrow');
-                if (!isAvailable) {
-                    borrowButton.textContent = 'Mevcut Değil';
-                    borrowButton.disabled = true;
-                    borrowButton.classList.remove('btn-primary');
-                    borrowButton.classList.add('btn-secondary');
+                const btn = document.getElementById('btn-borrow');
+                if (!isAvail) {
+                    btn.textContent = 'Mevcut Değil'; btn.disabled = true; btn.className = 'btn btn-secondary btn-borrow w-100 w-md-auto';
                 } else {
-                    borrowButton.textContent = 'Ödünç Al';
-                    borrowButton.disabled = false;
-                    borrowButton.classList.add('btn-primary');
-                    borrowButton.classList.remove('btn-secondary');
+                    btn.textContent = 'Ödünç Al'; btn.disabled = false; btn.className = 'btn btn-primary btn-borrow w-100 w-md-auto';
+                    btn.onclick = () => handleBorrowBook(book.id);
                 }
-                
-                // Event Listener'ı sıfırla
-                const newBtn = borrowButton.cloneNode(true);
-                borrowButton.parentNode.replaceChild(newBtn, borrowButton);
-                newBtn.addEventListener('click', () => handleBorrowBook(book.id));
+
+                // İçeriği hemen göster (Yazar/Kategori arkadan gelecek)
+                loadingEl.classList.add('d-none');
+                contentEl.classList.remove('d-none');
+
+                // 2. ADIM: Sadece Gerekli Yazar ve Kategorileri Çek (ID'ye göre)
+                // Bu kısım "Tümünü Çek" yerine "Tek Tek Çek" mantığıyla çalışır.
+                const authorIds = book.authors || [];
+                const categoryIds = book.categories || [];
+
+                // İstekleri Paralel Başlat (Promise.all ile)
+                const [authorsData, categoriesData] = await Promise.all([
+                    Promise.all(authorIds.map(id => Api.getAuthorById(id))),
+                    Promise.all(categoryIds.map(id => Api.getCategoryById(id)))
+                ]);
 
                 // Yazarları Listele
                 const authorsListEl = document.getElementById('book-authors-list');
                 authorsListEl.innerHTML = '';
-                if (book.authors && book.authors.length > 0) {
-                    book.authors.forEach(authorId => {
-                        const authorName = authorMap.get(authorId) || `Bilinmeyen Yazar (ID: ${authorId})`;
-                        authorsListEl.innerHTML += `<li>${authorName}</li>`;
+                if (authorsData.length > 0) {
+                    authorsData.forEach(res => {
+                        if (res.success) authorsListEl.innerHTML += `<li>${res.data.firstName} ${res.data.lastName}</li>`;
+                        else authorsListEl.innerHTML += `<li class="text-danger">Bilgi alınamadı</li>`;
                     });
-                } else {
-                    authorsListEl.innerHTML = '<li>Bilgi yok</li>';
-                }
+                } else authorsListEl.innerHTML = '<li>Bilgi yok</li>';
 
                 // Kategorileri Listele
                 const categoriesListEl = document.getElementById('book-categories-list');
                 categoriesListEl.innerHTML = '';
-                 if (book.categories && book.categories.length > 0) {
-                    book.categories.forEach(catId => {
-                        const categoryName = categoryMap.get(catId) || `Bilinmeyen Kategori (ID: ${catId})`;
-                        categoriesListEl.innerHTML += `<li>${categoryName}</li>`;
+                if (categoriesData.length > 0) {
+                    categoriesData.forEach(res => {
+                        if (res.success) categoriesListEl.innerHTML += `<li>${res.data.categoryName}</li>`;
+                        else categoriesListEl.innerHTML += `<li class="text-danger">Bilgi alınamadı</li>`;
                     });
-                } else {
-                    categoriesListEl.innerHTML = '<li>Bilgi yok</li>';
-                }
-
-                // İçeriği göster
-                contentEl.classList.remove('d-none');
+                } else categoriesListEl.innerHTML = '<li>Bilgi yok</li>';
 
             } catch (error) {
                 console.error(error);
-                showAlert(`Kitap detayları yüklenirken hata oluştu: ${error.message}`, 'danger');
-            } finally {
+                showAlert(`Hata: ${error.message}`, 'danger');
                 loadingEl.classList.add('d-none');
             }
         }
         
         async function handleBorrowBook(bookId) {
-            const borrowButton = document.getElementById('btn-borrow'); // Yeniden seç (klonlandığı için)
-            if (!confirm(`Bu kitabı (ID: ${bookId}) ödünç almak istediğinizden emin misiniz?`)) return;
-            
-            borrowButton.disabled = true;
-            borrowButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> İşleniyor...';
-
+            if (!confirm(`Bu kitabı ödünç almak istediğinizden emin misiniz?`)) return;
+            const btn = document.getElementById('btn-borrow');
+            btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> İşleniyor...';
             try {
-                const response = await Api.borrowBook(bookId); 
-                if(response.success) {
-                    showAlert('Kitap başarıyla ödünç alındı. Ana sayfaya yönlendiriliyorsunuz.', 'success');
-                    setTimeout(() => window.location.href = '/index.html', 2000); 
-                } else {
-                    showAlert(`Hata: ${response.message}`, 'danger');
-                    borrowButton.disabled = false;
-                    borrowButton.innerHTML = '<i class="bi bi-book"></i> Ödünç Al';
-                }
-            } catch (error) {
-                showAlert('Ödünç alma işlemi başarısız.');
-                borrowButton.disabled = false;
-                borrowButton.innerHTML = '<i class="bi bi-book"></i> Ödünç Al';
-            }
+                const res = await Api.borrowBook(bookId); 
+                if(res.success) { showAlert('Başarılı! Yönlendiriliyorsunuz...', 'success'); setTimeout(() => window.location.href = '/index.html', 2000); } 
+                else { showAlert(`Hata: ${res.message}`, 'danger'); btn.disabled = false; btn.textContent = 'Ödünç Al'; }
+            } catch (error) { showAlert('İşlem başarısız.', 'danger'); btn.disabled = false; btn.textContent = 'Ödünç Al'; }
         }
     </script>
 </body>

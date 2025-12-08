@@ -150,9 +150,15 @@ const Api = {
         return Api.fetch(`/api/admin/categories/${id}`, { method: "DELETE" });
     },
 
-    // --- Book Endpoints ---
-    getBooks: (page = 0, size = 6) => {
-        return Api.fetch(`/api/books?page=${page}&size=${size}`, { method: "GET" });
+    // --- Book Endpoints (Pagination + Search + Filter Destekli) ---
+    getBooks: (page = 0, size = 12, search = "", categoryId = null, authorId = null) => {
+        let url = `/api/books?page=${page}&size=${size}&sort=id,desc`; 
+        
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+        if (categoryId) url += `&categoryId=${categoryId}`;
+        if (authorId) url += `&authorId=${authorId}`;
+        
+        return Api.fetch(url, { method: "GET" });
     },
     getBookById: (bookId) => {
         return Api.fetch(`/api/books/${bookId}`, { method: "GET" }); 
