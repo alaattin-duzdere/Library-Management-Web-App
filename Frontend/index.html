@@ -431,7 +431,7 @@
         function createBookCard(book) {
             const col = document.createElement('div');
             col.className = 'col';
-            const isAvailable = book.situation === 'AVAILABLE';
+            const isAvailable = book.situation === 'AVAILABLE'; // is book.situation equals 'AVAILABLE'
             const detailUrl = `/book-detail.html?id=${book.id}`;
             const imageUrl = book.imageUrl || 'https://placehold.co/400x600?text=Kapak+Yok';
 

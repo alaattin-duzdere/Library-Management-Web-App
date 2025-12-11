@@ -205,5 +205,31 @@ const Api = {
             method: "POST",
             body: JSON.stringify({ penaltyId, amount })
         });
-    }
+    },
+
+    // Yorumları Getir (Sayfalı)
+    getCommentsByBook: (bookId, page = 0, size = 10) => {
+        return Api.fetch(`/api/comments/book/${bookId}?page=${page}&size=${size}&sort=createTime,desc`, { method: "GET" });
+    },
+
+    // Yorum Ekle
+    addComment: (commentData) => {
+        return Api.fetch('/api/comments', {
+            method: "POST",
+            body: JSON.stringify(commentData)
+        });
+    },
+
+    // Yorum Sil (Opsiyonel - Kendi yorumunu silmek için)
+    deleteComment: (commentId) => {
+        return Api.fetch(`/api/comments/${commentId}`, { method: "DELETE" });
+    },
+
+    // Yorum Güncelle
+    updateComment: (commentId, content) => {
+        return Api.fetch(`/api/comments/${commentId}`, {
+            method: "PUT",
+            body: JSON.stringify({ content: content })
+        });
+    },
 };
