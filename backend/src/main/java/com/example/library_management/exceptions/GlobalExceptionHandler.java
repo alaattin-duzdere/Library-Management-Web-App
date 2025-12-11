@@ -6,6 +6,7 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureException;
 import jogamp.common.util.locks.SingletonInstanceServerSocket;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -23,6 +24,7 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 import java.rmi.ServerException;
 import java.util.stream.Collectors;
 
+@Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -126,7 +128,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<CustomResponseBody<?>> handleAccesDeniedForMethodSecurity(){
+    public ResponseEntity<CustomResponseBody<?>> handleAccessDeniedForMethodSecurity(){
         CustomResponseBody<Object> body = CustomResponseBody.failure(ApiStatus.ERROR_FORBIDDEN, "Acces denied");
         return new ResponseEntity<>(body,HttpStatus.valueOf(body.getHttpStatus()));
     }
@@ -139,13 +141,10 @@ public class GlobalExceptionHandler {
     public ResponseEntity<CustomResponseBody<?>> handleGenericException(Exception ex) {
 
         ApiStatus apiStatus = ApiStatus.ERROR_INTERNAL_SERVER;
-
-        // Log the severe error (important for 500s)
-        System.err.println("UNEXPECTED SERVER ERROR: " + ex.getMessage());
+        log.error("Error occurred with exception;",ex);
 
         CustomResponseBody<?> body = CustomResponseBody.failure(
                 apiStatus,
-                // Only show a generic message for security/simplicity
                 apiStatus.getDefaultMessage()
         );
 

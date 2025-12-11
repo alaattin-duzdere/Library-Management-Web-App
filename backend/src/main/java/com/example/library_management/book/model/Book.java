@@ -2,6 +2,7 @@ package com.example.library_management.book.model;
 
 import com.example.library_management.author.model.Author;
 import com.example.library_management.category.model.Category;
+import com.example.library_management.comment.model.Comment;
 import com.example.library_management.common.model.BaseEntity;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
@@ -10,6 +11,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -33,6 +35,9 @@ public class Book extends BaseEntity {
     @ManyToMany
     private Set<Category> categories = new HashSet<>();
 
+    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Comment> comments = new HashSet<>();
+
     @Column(name="number_of_pages")
     private int numberOfPages;
 
@@ -43,5 +48,14 @@ public class Book extends BaseEntity {
     @Column(name="situation")
     @Enumerated(EnumType.STRING)
     private Situation situation = Situation.AVAILABLE;
+
+    // Helper methods for comments
+    public void addComment(Comment comment) {
+        this.comments.add(comment);
+    }
+
+    public void removeComment(Comment comment) {
+        this.comments.remove(comment);
+    }
 
 }
