@@ -38,6 +38,9 @@ public class Book extends BaseEntity {
     @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Comment> comments = new HashSet<>();
 
+    @Column(name="like_count",nullable = false,columnDefinition = "bigint default 0")
+    private long likeCount = 0L;
+
     @Column(name="number_of_pages")
     private int numberOfPages;
 
@@ -57,5 +60,9 @@ public class Book extends BaseEntity {
     public void removeComment(Comment comment) {
         this.comments.remove(comment);
     }
+
+    // Helper methods for likes
+    public void incrementLikeCount() {this.likeCount++;}
+    public void decrementLikeCount() {if (this.likeCount > 0) this.likeCount--; }
 
 }

@@ -51,6 +51,7 @@ public class BookServiceImpl implements IBookService {
         Book book = new Book();
         BeanUtils.copyProperties(inputDto, book);
         book.setCreateTime(new Date());
+        book.setLikeCount(0L);
 
         Set<Long> authors = inputDto.getAuthors();
         authors.forEach( authorId -> {
