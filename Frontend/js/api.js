@@ -152,7 +152,7 @@ const Api = {
 
     // --- Book Endpoints (Pagination + Search + Filter Destekli) ---
     getBooks: (page = 0, size = 12, search = "", categoryId = null, authorId = null) => {
-        let url = `/api/books?page=${page}&size=${size}&sort=id,desc`; 
+        let url = `/api/books?page=${page}&size=${size}&sort=likeCount,desc`; 
         
         if (search) url += `&search=${encodeURIComponent(search)}`;
         if (categoryId) url += `&categoryId=${categoryId}`;
@@ -232,4 +232,16 @@ const Api = {
             body: JSON.stringify({ content: content })
         });
     },
+    // --- BEĞENİ (LIKE) ENDPOINTLERİ ---
+    toggleLike: (bookId) => {
+        return Api.fetch(`/api/likes/${bookId}`, { method: "POST" });
+    },
+    
+    isBookLiked: (bookId) => {
+        return Api.fetch(`/api/likes/${bookId}/check`, { method: "GET" });
+    },
+    
+    getLikeCount: (bookId) => {
+        return Api.fetch(`/api/likes/${bookId}/count`, { method: "GET" });
+    }
 };

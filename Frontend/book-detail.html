@@ -32,28 +32,45 @@
         .info-item {
             display: flex; align-items: center; margin-bottom: 12px; font-size: 1.1rem;
         }
-        /* İkon ile metin arasındaki boşluk */
-        .info-item .bi { margin-right: 10px; color: #6c757d; }
+        .info-item strong { min-width: 140px; margin-right: 10px; color: #495057; }
+        .list-unstyled li { margin-bottom: 5px; padding-left: 10px; border-left: 3px solid #0d6efd; }
+        .btn-borrow { font-size: 1.2rem; padding: 12px 30px; border-radius: 50px; transition: all 0.3s ease; }
+        .situation-badge { font-size: 1rem; padding: 0.5em 1em; }
         
-        .btn-borrow { font-size: 1.2rem; padding: 12px 30px; border-radius: 50px; }
-        
-        /* Yorum Kartı Stili */
-        .comment-card {
-            border-bottom: 1px solid #eee;
-            padding: 15px 0;
-            position: relative;
+        /* YENİ: Beğeni Butonu Stili */
+        .btn-like-action {
+            border-radius: 50px;
+            padding: 10px 20px;
+            border: 2px solid #dee2e6;
+            color: #6c757d;
+            background: white;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
         }
+        .btn-like-action:hover {
+            border-color: #dc3545;
+            color: #dc3545;
+            background-color: #fff5f5;
+        }
+        .btn-like-action.liked {
+            background-color: #dc3545;
+            border-color: #dc3545;
+            color: white;
+        }
+        .btn-like-action.liked i { color: white; }
+
+        /* Yorum Kartı */
+        .comment-card { border-bottom: 1px solid #eee; padding: 15px 0; position: relative; }
         .comment-card:last-child { border-bottom: none; }
         .comment-header { display: flex; justify-content: space-between; align-items: flex-start; }
         .comment-user { font-weight: 600; color: #333; margin-right: 8px; }
         .comment-date { font-size: 0.8em; color: #999; }
-        
-        .comment-actions .btn-action {
-            padding: 0 5px; border: none; background: none; font-size: 0.9rem; opacity: 0.6; transition: opacity 0.2s;
-        }
+        .comment-actions .btn-action { padding: 0 5px; border: none; background: none; font-size: 0.9rem; opacity: 0.6; }
         .comment-actions .btn-action:hover { opacity: 1; }
-        .btn-delete { color: #dc3545; }
-        .btn-edit { color: #fd7e14; }
+        .btn-delete { color: #dc3545; } .btn-edit { color: #fd7e14; }
     </style>
 </head>
 <body>
@@ -78,68 +95,62 @@
         <div id="action-alert" class="alert d-none" role="alert"></div>
 
         <div id="loading-spinner" class="text-center p-5">
-            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
-            <p class="mt-2 text-muted">Yükleniyor...</p>
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
+            <p class="mt-2 text-muted">Kitap bilgileri alınıyor...</p>
         </div>
 
         <div id="book-content" class="row d-none book-detail-container">
             <div class="col-md-4 text-center mb-4 mb-md-0">
-                <img id="book-cover" src="" class="book-cover-img" alt="Kapak">
+                <img id="book-cover" src="https://via.placeholder.com/300x450?text=Kapak+Yok" class="book-cover-img" alt="Kitap Kapağı">
             </div>
             
-            <div class="col-md-8">
-                <h1 id="book-title" class="mb-3 display-5 fw-bold text-dark"></h1>
+            <div class="col-md-8 d-flex flex-column">
+                <h1 id="book-title" class="mb-4 display-5 fw-bold text-dark"></h1>
                 
                 <div class="mb-4">
-                    <div class="info-item">
-                        <i class="bi bi-info-circle-fill"></i> <span id="book-situation" class="badge"></span>
-                    </div>
-                    <div class="info-item">
-                        <i class="bi bi-upc-scan"></i> <span id="book-isbn"></span>
-                    </div>
-                    <div class="info-item">
-                        <i class="bi bi-file-earmark-text"></i> <span id="book-pages"></span>&nbsp;Sayfa
-                    </div>
+                    <div class="info-item"><i class="bi bi-info-circle-fill me-2 text-secondary"></i><strong>Durum:</strong> <span id="book-situation" class="badge situation-badge"></span></div>
+                    <div class="info-item"><i class="bi bi-upc-scan me-2 text-secondary"></i><strong>ISBN:</strong> <span id="book-isbn" class="text-dark"></span></div>
+                    <div class="info-item"><i class="bi bi-file-earmark-text me-2 text-secondary"></i><strong>Sayfa Sayısı:</strong> <span id="book-pages" class="text-dark"></span>&nbsp;Sayfa</div>
                 </div>
 
                 <div class="row mb-4">
-                    <div class="col-md-6">
-                        <h6 class="text-primary"><i class="bi bi-person-lines-fill"></i> Yazarlar</h6>
-                        <ul id="book-authors-list" class="list-unstyled ms-3 border-start ps-2 border-primary"></ul>
+                    <div class="col-md-6 mb-3">
+                        <div class="info-item mb-2 text-primary"><i class="bi bi-person-lines-fill me-2"></i><strong>Yazar(lar):</strong></div>
+                        <ul id="book-authors-list" class="list-unstyled ms-4 ps-1 text-secondary"><li class="text-muted"><small>Yükleniyor...</small></li></ul>
                     </div>
-                    <div class="col-md-6">
-                        <h6 class="text-primary"><i class="bi bi-tags-fill"></i> Kategoriler</h6>
-                        <ul id="book-categories-list" class="list-unstyled ms-3 border-start ps-2 border-primary"></ul>
+                    <div class="col-md-6 mb-3">
+                        <div class="info-item mb-2 text-primary"><i class="bi bi-tags-fill me-2"></i><strong>Kategori(ler):</strong></div>
+                        <ul id="book-categories-list" class="list-unstyled ms-4 ps-1 text-secondary"><li class="text-muted"><small>Yükleniyor...</small></li></ul>
                     </div>
                 </div>
-
-                <button class="btn btn-primary btn-borrow w-100" id="btn-borrow">Ödünç Al</button>
+                
+                <div class="mt-auto pt-3 d-flex align-items-center gap-3">
+                    <button class="btn btn-primary btn-borrow flex-grow-1" id="btn-borrow">
+                        <i class="bi bi-book"></i> Ödünç Al
+                    </button>
+                    
+                    <button class="btn btn-like-action" id="like-action-btn" title="Beğen">
+                        <i class="bi bi-heart" id="like-icon" style="font-size: 1.3rem;"></i>
+                        <span id="like-count" style="font-size: 1.1rem;">0</span>
+                    </button>
+                </div>
 
                 <div class="mt-5 pt-4 border-top">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h4 class="mb-0"><i class="bi bi-chat-left-text"></i> Yorumlar</h4>
-                        <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseComments" aria-expanded="true">
-                            Göster / Gizle <i class="bi bi-chevron-down"></i>
-                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseComments">Göster / Gizle <i class="bi bi-chevron-down"></i></button>
                     </div>
 
                     <div class="collapse show" id="collapseComments">
                         <div class="card bg-light mb-4 shadow-sm border-0">
                             <div class="card-body">
                                 <form id="comment-form">
-                                    <div class="mb-2">
-                                        <textarea class="form-control" id="comment-text" rows="2" placeholder="Düşüncelerinizi paylaşın..." required></textarea>
-                                    </div>
-                                    <div class="text-end">
-                                        <button type="submit" class="btn btn-primary btn-sm px-4">Gönder</button>
-                                    </div>
+                                    <div class="mb-2"><textarea class="form-control" id="comment-text" rows="2" placeholder="Düşüncelerinizi paylaşın..." required></textarea></div>
+                                    <div class="text-end"><button type="submit" class="btn btn-primary btn-sm px-4">Gönder</button></div>
                                 </form>
                             </div>
                         </div>
-
-                        <div id="comments-list-container">
-                            <div class="text-center text-muted py-3">Yorumlar yükleniyor...</div>
-                        </div>
+                        <div id="comments-list-container"><div class="text-center text-muted py-3">Yorumlar yükleniyor...</div></div>
                     </div>
                 </div>
             </div>
@@ -160,6 +171,8 @@
             if (currentBookId) {
                 loadBookDetails(currentBookId);
                 loadComments(currentBookId);
+                // Beğeni Event'i (Butona bağlandı)
+                document.getElementById('like-action-btn').addEventListener('click', () => toggleLikeDetail(currentBookId));
             } else {
                 showAlert('Geçersiz kitap ID.', 'danger');
                 document.getElementById('loading-spinner').classList.add('d-none');
@@ -181,55 +194,129 @@
         function showAlert(m, t='danger') { const a = document.getElementById('action-alert'); a.textContent = m; a.className = `alert alert-${t}`; window.scrollTo(0, 0); setTimeout(() => a.className = 'alert d-none', 5000); }
 
         async function loadBookDetails(bookId) {
+            const loadingEl = document.getElementById('loading-spinner');
+            const contentEl = document.getElementById('book-content');
+
             try {
-                // 1. Önce Sadece Kitap Bilgisini Çek (HIZLI)
+                // 1. Kitap Verisini Çek
                 const bookRes = await Api.getBookById(bookId);
-                if (!bookRes.success) throw new Error(bookRes.message);
+                if (!bookRes.success) throw new Error(bookRes.message || 'Kitap bulunamadı.');
                 const book = bookRes.data;
 
+                // Bilgileri Doldur
                 document.getElementById('book-title').textContent = book.title;
                 document.getElementById('book-cover').src = book.imageUrl || 'https://placehold.co/400x600?text=Kapak+Yok';
                 document.getElementById('book-isbn').textContent = book.isbn || '-';
                 document.getElementById('book-pages').textContent = book.numberOfPages;
-                
-                const sit = document.getElementById('book-situation');
+
+                // Beğeni Bilgisi
+                document.getElementById('like-count').innerText = book.likeCount || 0;
+                checkIfLiked(bookId); // Durumu kontrol et
+
+                // Durum Rozeti
+                const sitEl = document.getElementById('book-situation');
                 const isAvail = book.situation === 'AVAILABLE';
-                sit.textContent = isAvail ? 'Mevcut' : 'Ödünçte';
-                sit.className = `badge situation-badge ${isAvail ? 'bg-success' : 'bg-danger'}`;
-                
+                sitEl.textContent = book.situation;
+                sitEl.className = `badge situation-badge ${isAvail ? 'bg-success' : 'bg-danger'}`;
+
+                // Ödünç Butonu
                 const btn = document.getElementById('btn-borrow');
-                if(!isAvail) { btn.textContent = 'Mevcut Değil'; btn.disabled = true; btn.className = 'btn btn-secondary w-100'; }
-                else { btn.onclick = () => handleBorrowBook(book.id); }
+                if (!isAvail) {
+                    btn.textContent = 'Mevcut Değil'; btn.disabled = true; btn.className = 'btn btn-secondary btn-borrow flex-grow-1';
+                } else {
+                    btn.textContent = 'Ödünç Al'; btn.disabled = false; btn.className = 'btn btn-primary btn-borrow flex-grow-1';
+                    btn.onclick = () => handleBorrowBook(book.id);
+                }
 
-                // 2. Sayfa içeriğini göster (Yazarlar yüklenmeden)
-                document.getElementById('loading-spinner').classList.add('d-none');
-                document.getElementById('book-content').classList.remove('d-none');
+                // Sayfayı Göster
+                loadingEl.classList.add('d-none');
+                contentEl.classList.remove('d-none');
 
-                // 3. Yazar ve Kategorileri ID ile Tek Tek Çek (PERFORMANS İÇİN)
-                // "Tüm yazarları getir" yerine "Sadece bu ID'leri getir"
+                // 2. Yazar ve Kategorileri (Optimize Edilmiş Şekilde) Çek
                 const aIds = book.authors || [];
                 const cIds = book.categories || [];
                 
-                const [aDetails, cDetails] = await Promise.all([
+                const [authorsData, categoriesData] = await Promise.all([
                     Promise.all(aIds.map(id => Api.getAuthorById(id))),
                     Promise.all(cIds.map(id => Api.getCategoryById(id)))
                 ]);
 
-                const aList = document.getElementById('book-authors-list'); aList.innerHTML = '';
-                aDetails.forEach(r => { if(r.success) aList.innerHTML += `<li>${r.data.firstName} ${r.data.lastName}</li>`; });
-                if(aDetails.length===0) aList.innerHTML = '<li>Bilgi yok</li>';
+                const authorsListEl = document.getElementById('book-authors-list');
+                authorsListEl.innerHTML = '';
+                if (authorsData.length > 0) {
+                    authorsData.forEach(res => {
+                        if (res.success) authorsListEl.innerHTML += `<li>${res.data.firstName} ${res.data.lastName}</li>`;
+                        else authorsListEl.innerHTML += `<li class="text-danger">Bilinmiyor</li>`;
+                    });
+                } else authorsListEl.innerHTML = '<li>Bilgi yok</li>';
 
-                const cList = document.getElementById('book-categories-list'); cList.innerHTML = '';
-                cDetails.forEach(r => { if(r.success) cList.innerHTML += `<li>${r.data.categoryName}</li>`; });
-                if(cDetails.length===0) cList.innerHTML = '<li>Bilgi yok</li>';
+                const categoriesListEl = document.getElementById('book-categories-list');
+                categoriesListEl.innerHTML = '';
+                if (categoriesData.length > 0) {
+                    categoriesData.forEach(res => {
+                        if (res.success) categoriesListEl.innerHTML += `<li>${res.data.categoryName}</li>`;
+                        else categoriesListEl.innerHTML += `<li class="text-danger">Bilinmiyor</li>`;
+                    });
+                } else categoriesListEl.innerHTML = '<li>Bilgi yok</li>';
 
+            } catch (error) {
+                console.error(error);
+                showAlert(`Hata: ${error.message}`, 'danger');
+                loadingEl.classList.add('d-none');
+            }
+        }
+        
+        // --- Beğeni Fonksiyonları (GÜNCELLENMİŞ) ---
+        async function checkIfLiked(bookId) {
+            try {
+                const res = await Api.isBookLiked(bookId);
+                if (res.success && res.data === true) {
+                    const btn = document.getElementById('like-action-btn');
+                    const icon = document.getElementById('like-icon');
+                    btn.classList.add('liked');
+                    icon.classList.remove('bi-heart');
+                    icon.classList.add('bi-heart-fill');
+                }
+            } catch (e) {}
+        }
+
+        async function toggleLikeDetail(bookId) {
+            const btn = document.getElementById('like-action-btn');
+            const icon = document.getElementById('like-icon');
+            const countSpan = document.getElementById('like-count');
+            
+            const isLiked = btn.classList.contains('liked');
+            let count = parseInt(countSpan.innerText);
+
+            // Optimistic UI Update
+            if (isLiked) {
+                btn.classList.remove('liked');
+                icon.classList.remove('bi-heart-fill'); icon.classList.add('bi-heart');
+                countSpan.innerText = Math.max(0, count - 1);
+            } else {
+                btn.classList.add('liked');
+                icon.classList.remove('bi-heart'); icon.classList.add('bi-heart-fill');
+                countSpan.innerText = count + 1;
+            }
+
+            try {
+                const res = await Api.toggleLike(bookId);
+                if (!res.success) throw new Error();
             } catch (e) {
-                showAlert(`Hata: ${e.message}`);
-                document.getElementById('loading-spinner').classList.add('d-none');
+                // Hata durumunda geri al
+                if (isLiked) {
+                    btn.classList.add('liked');
+                    icon.classList.add('bi-heart-fill'); icon.classList.remove('bi-heart');
+                    countSpan.innerText = count;
+                } else {
+                    btn.classList.remove('liked');
+                    icon.classList.add('bi-heart'); icon.classList.remove('bi-heart-fill');
+                    countSpan.innerText = count;
+                }
             }
         }
 
-        // --- YORUMLAR ---
+        // --- Yorumlar ---
         async function loadComments(bookId) {
             const container = document.getElementById('comments-list-container');
             try {
@@ -244,7 +331,6 @@
                     container.innerHTML = ''; 
                     comments.forEach(comment => {
                         const date = new Date(comment.createTime).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute:'2-digit' });
-                        
                         const isMyComment = comment.userId && String(comment.userId) === String(CURRENT_USER_ID);
                         const isAdmin = Auth.hasRole('ADMIN');
                         const displayName = comment.username || 'Kullanıcı';
@@ -284,27 +370,16 @@
         function showEditForm(id) { document.getElementById(`comment-view-${id}`).classList.add('d-none'); document.getElementById(`comment-edit-${id}`).classList.remove('d-none'); }
         function cancelEdit(id) { document.getElementById(`comment-view-${id}`).classList.remove('d-none'); document.getElementById(`comment-edit-${id}`).classList.add('d-none'); }
         async function submitEditComment(id) {
-            const val = document.querySelector(`#comment-edit-${id} textarea`).value.trim();
-            if(!val) return alert('Boş olamaz');
+            const val = document.querySelector(`#comment-edit-${id} textarea`).value.trim(); if(!val) return alert('Boş olamaz');
             try { const res = await Api.updateComment(id, val); if(res.success) { loadComments(currentBookId); showAlert('Güncellendi','success'); } else showAlert(res.message); } catch(e){ showAlert('Hata'); }
         }
 
         async function handleAddComment(e) {
-            e.preventDefault();
-            const content = document.getElementById('comment-text').value.trim();
-            if (!content) return;
+            e.preventDefault(); const content = document.getElementById('comment-text').value.trim(); if (!content) return;
             const btn = e.target.querySelector('button'); btn.disabled = true; btn.textContent = '...';
-            try {
-                const res = await Api.addComment({ content: content, bookId: currentBookId });
-                if (res.success) { document.getElementById('comment-text').value = ''; loadComments(currentBookId); showAlert('Yorum eklendi.', 'success'); } 
-                else showAlert(res.message, 'danger');
-            } catch (error) { showAlert('Hata oluştu.', 'danger'); } finally { btn.disabled = false; btn.textContent = 'Gönder'; }
+            try { const res = await Api.addComment({ content: content, bookId: currentBookId }); if (res.success) { document.getElementById('comment-text').value = ''; loadComments(currentBookId); showAlert('Yorum eklendi.', 'success'); } else showAlert(res.message, 'danger'); } catch (error) { showAlert('Hata oluştu.', 'danger'); } finally { btn.disabled = false; btn.textContent = 'Gönder'; }
         }
-
-        async function handleDeleteComment(id) {
-            if(!confirm('Silinsin mi?')) return;
-            try { const res = await Api.deleteComment(id); if(res.success) { loadComments(currentBookId); showAlert('Silindi', 'success'); } else showAlert(res.message); } catch(e) { showAlert('Hata'); }
-        }
+        async function handleDeleteComment(id) { if(!confirm('Silinsin mi?')) return; try { const res = await Api.deleteComment(id); if(res.success) { loadComments(currentBookId); showAlert('Silindi', 'success'); } else showAlert(res.message); } catch(e) { showAlert('Hata'); } }
 
         async function handleBorrowBook(bookId) {
             if(!confirm('Ödünç alınsın mı?')) return;
