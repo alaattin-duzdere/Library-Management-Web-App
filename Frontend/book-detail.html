@@ -129,6 +129,11 @@
                         <i class="bi bi-book"></i> Ödünç Al
                     </button>
                     
+                    <button class="btn btn-like-action" onclick="document.getElementById('collapseComments').scrollIntoView({behavior: 'smooth'})" title="Yorumlara Git">
+                        <i class="bi bi-chat-left-text text-secondary" style="font-size: 1.3rem;"></i>
+                        <span id="comment-count" class="text-secondary" style="font-size: 1.1rem;">0</span>
+                    </button>
+                    
                     <button class="btn btn-like-action" id="like-action-btn" title="Beğen">
                         <i class="bi bi-heart" id="like-icon" style="font-size: 1.3rem;"></i>
                         <span id="like-count" style="font-size: 1.1rem;">0</span>
@@ -212,6 +217,9 @@
                 // Beğeni Bilgisi
                 document.getElementById('like-count').innerText = book.likeCount || 0;
                 checkIfLiked(bookId); // Durumu kontrol et
+
+                // Yorum Sayısı Bilgisi
+                document.getElementById('comment-count').innerText = book.commentCount || 0;
 
                 // Durum Rozeti
                 const sitEl = document.getElementById('book-situation');
