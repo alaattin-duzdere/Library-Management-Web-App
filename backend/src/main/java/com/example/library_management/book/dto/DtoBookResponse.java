@@ -25,6 +25,8 @@ public class DtoBookResponse {
 
     private Long likeCount;
 
+    private Long commentCount;
+
     private int numberOfPages;
 
     private Situation situation;

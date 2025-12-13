@@ -49,6 +49,7 @@ public class CommentServiceImpl implements ICommentService {
     private Comment createCommentFromCommentRequest(DtoCommentRequest input){
         Comment comment = new Comment();
         comment.setContent(input.getContent());
+        comment.setCreateTime(new Date());
 
         Long userId = getUserIdFromContext();
         User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
@@ -56,7 +57,6 @@ public class CommentServiceImpl implements ICommentService {
 
         Book book = bookRepository.findById(input.getBookId()).orElseThrow(() -> new ResourceNotFoundException("Book", "id", input.getBookId()));
         comment.setBook(book);
-        book.addComment(comment);
 
         return comment;
     }
@@ -77,9 +77,15 @@ public class CommentServiceImpl implements ICommentService {
     @Override
     public DtoCommentResponse saveComment(DtoCommentRequest input) {
         Comment comment = createCommentFromCommentRequest(input);
-        comment.setCreateTime(new Date());
-        Comment save = commentRepository.save(comment);
-        return commentToDtoCommentResponse(save);
+
+        Comment savedComment = commentRepository.save(comment);
+
+        Book book = savedComment.getBook();
+        book.incrementCommentCount();
+        book.addComment(savedComment);
+        bookRepository.save(book);
+
+        return commentToDtoCommentResponse(savedComment);
     }
 
     @Override
@@ -121,9 +127,13 @@ public class CommentServiceImpl implements ICommentService {
             throw new ForbiddenException("You do not have permission to delete this comment.");
         }
 
-        comment.getBook().removeComment(comment);
-
         commentRepository.delete(comment);
+
+        Book book = comment.getBook();
+        book.removeComment(comment);
+        book.decrementCommentCount();
+        bookRepository.save(book);
+
         return commentToDtoCommentResponse(comment);
     }
 }

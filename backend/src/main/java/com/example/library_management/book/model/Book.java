@@ -11,7 +11,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -41,6 +40,9 @@ public class Book extends BaseEntity {
     @Column(name="like_count",nullable = false,columnDefinition = "bigint default 0")
     private long likeCount = 0L;
 
+    @Column(name="comment_count",nullable = false,columnDefinition = "bigint default 0")
+    private long commentCount = 0L;
+
     @Column(name="number_of_pages")
     private int numberOfPages;
 
@@ -56,7 +58,6 @@ public class Book extends BaseEntity {
     public void addComment(Comment comment) {
         this.comments.add(comment);
     }
-
     public void removeComment(Comment comment) {
         this.comments.remove(comment);
     }
@@ -64,5 +65,9 @@ public class Book extends BaseEntity {
     // Helper methods for likes
     public void incrementLikeCount() {this.likeCount++;}
     public void decrementLikeCount() {if (this.likeCount > 0) this.likeCount--; }
+
+    // Helper methods for comment count
+    public void incrementCommentCount() {this.commentCount++;}
+    public void decrementCommentCount() {if (this.commentCount > 0) this.commentCount--; }
 
 }
