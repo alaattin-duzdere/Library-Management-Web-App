@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profilim - Kütüphane</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    
+    <script src="js/auth.js"></script>
+    <script>
+        if (!Auth.isLoggedIn()) { window.location.href = '/login.html'; }
+    </script>
+    <style>
+        body { background-color: #f3f4f6; }
+        
+        /* Sidebar Stili */
+        .sidebar-card { border: none; border-radius: 12px; overflow: hidden; }
+        .sidebar-menu .list-group-item {
+            border: none; padding: 12px 20px; font-weight: 500; color: #6c757d;
+            transition: all 0.2s; display: flex; align-items: center;
+        }
+        .sidebar-menu .list-group-item:hover { background-color: #f8f9fa; color: #0d6efd; padding-left: 25px; }
+        .sidebar-menu .list-group-item.active {
+            background-color: #e7f1ff; color: #0d6efd; border-left: 4px solid #0d6efd;
+        }
+        .sidebar-menu i { font-size: 1.2rem; margin-right: 12px; width: 24px; text-align: center; }
+
+        /* Profil Kartı */
+        .user-profile-card { background: linear-gradient(135deg, #0d6efd, #0a58ca); color: white; border: none; }
+        .avatar-small {
+            width: 60px; height: 60px; background: rgba(255,255,255,0.2);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem;
+        }
+
+        /* İstatistik Kartları */
+        .stat-card { border: none; border-radius: 12px; transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.05)!important; }
+        .stat-icon {
+            width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
+        }
+
+        /* İçerik Kartları */
+        .content-card { border: none; border-radius: 12px; min-height: 400px; }
+        .book-cover-sm { width: 60px; height: 90px; object-fit: cover; border-radius: 6px; }
+        
+        /* Yorum Balonu */
+        .comment-bubble { background: #f8f9fa; border-radius: 12px; padding: 15px; position: relative; }
+        .comment-bubble::before {
+            content: ''; position: absolute; left: -10px; top: 15px;
+            border-width: 10px 10px 10px 0; border-style: solid; border-color: transparent #f8f9fa transparent transparent;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+        <div class="container"> <a class="navbar-brand fw-bold" href="/index.html"><i class="bi bi-book-half"></i> Kütüphane</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item me-2"><a class="nav-link" href="/index.html">Kitaplar</a></li>
+                    <li class="nav-item me-2 d-none" id="admin-link"><a class="nav-link" href="/admin.html">Yönetim</a></li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle active d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown">
+                            <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                <i class="bi bi-person-fill"></i>
+                            </div>
+                            <span id="nav-username">...</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow">
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Profilim</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" id="logout-button"><i class="bi bi-box-arrow-right me-2"></i>Çıkış</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <div id="action-alert" class="alert d-none shadow-sm border-0" role="alert"></div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card stat-card shadow-sm h-100">
+                    <div class="card-body d-flex align-items-center p-3">
+                        <div class="stat-icon bg-danger bg-opacity-10 text-danger me-3"><i class="bi bi-heart-fill"></i></div>
+                        <div><small class="text-muted d-block">Favori Kitaplar</small><h4 class="mb-0 fw-bold" id="stat-fav-count">-</h4></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stat-card shadow-sm h-100">
+                    <div class="card-body d-flex align-items-center p-3">
+                        <div class="stat-icon bg-warning bg-opacity-10 text-warning me-3"><i class="bi bi-journal-text"></i></div>
+                        <div><small class="text-muted d-block">Aktif Ödünç</small><h4 class="mb-0 fw-bold" id="stat-borrow-count">-</h4></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stat-card shadow-sm h-100">
+                    <div class="card-body d-flex align-items-center p-3">
+                        <div class="stat-icon bg-success bg-opacity-10 text-success me-3"><i class="bi bi-chat-dots-fill"></i></div>
+                        <div><small class="text-muted d-block">Yorumlarım</small><h4 class="mb-0 fw-bold" id="stat-comment-count">-</h4></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-3">
+                <div class="card user-profile-card shadow-sm mb-4">
+                    <div class="card-body text-center p-4">
+                        <div class="avatar-small mx-auto mb-3"><i class="bi bi-person-fill"></i></div>
+                        <h5 class="fw-bold mb-1" id="profile-username">Yükleniyor...</h5>
+                        <p class="small opacity-75 mb-0">Kütüphane Üyesi</p>
+                    </div>
+                </div>
+
+                <div class="card sidebar-card shadow-sm">
+                    <div class="list-group list-group-flush sidebar-menu" id="sidebar-tabs">
+                        <a href="#" class="list-group-item active" data-target="borrowed-view">
+                            <i class="bi bi-journal-bookmark-fill"></i> Ödünç Aldıklarım
+                        </a>
+                        <a href="#" class="list-group-item" data-target="favorites-view">
+                            <i class="bi bi-heart"></i> Favorilerim
+                        </a>
+                        <a href="#" class="list-group-item" data-target="comments-view">
+                            <i class="bi bi-chat-text"></i> Yorumlarım
+                        </a>
+                        <a href="#" class="list-group-item" data-target="penalties-view">
+                            <i class="bi bi-exclamation-octagon"></i> Cezalarım
+                        </a>
+                        <a href="#" class="list-group-item" data-target="settings-view">
+                            <i class="bi bi-sliders"></i> Ayarlar
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-9">
+                <div class="card content-card shadow-sm bg-white">
+                    <div class="card-body p-4">
+                        
+                        <div id="borrowed-view" class="view-section">
+                            <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">Ödünç Alınan Kitaplar</h5>
+                            
+                            <div id="borrowed-active-list" class="row g-3 mb-4"></div>
+
+                            <div class="accordion" id="accordionBorrowed">
+                                <div class="accordion-item border-0 shadow-sm mb-3">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed bg-light text-secondary rounded-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseHistory">
+                                            <i class="bi bi-clock-history me-2"></i> Geçmiş Ödünç Kayıtları
+                                        </button>
+                                    </h2>
+                                    <div id="collapseHistory" class="accordion-collapse collapse" data-bs-parent="#accordionBorrowed">
+                                        <div class="accordion-body bg-light rounded-bottom-3">
+                                            <div id="borrowed-history-list" class="row g-3"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="favorites-view" class="view-section d-none">
+                            <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">Favori Kitaplarım</h5>
+                            <div id="favorites-grid" class="row row-cols-2 row-cols-md-3 row-cols-xl-4 g-3"></div>
+                            <div id="favorites-pagination" class="mt-4 d-flex justify-content-center"></div>
+                        </div>
+
+                        <div id="comments-view" class="view-section d-none">
+                            <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">Yaptığım Yorumlar</h5>
+                            <div id="comments-list" class="vstack gap-4"></div>
+                            <div id="comments-pagination" class="mt-4 d-flex justify-content-center"></div>
+                        </div>
+
+                        <div id="penalties-view" class="view-section d-none">
+                            <h5 class="fw-bold text-danger mb-4 border-bottom pb-2">Ceza Durumu</h5>
+                            
+                            <div id="penalties-active-list" class="list-group list-group-flush mb-4"></div>
+
+                            <div class="accordion" id="accordionPenalties">
+                                <div class="accordion-item border-0 shadow-sm">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed bg-light text-secondary rounded-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePaidPenalties">
+                                            <i class="bi bi-check-all me-2"></i> Ödenmiş Cezalar (Geçmiş)
+                                        </button>
+                                    </h2>
+                                    <div id="collapsePaidPenalties" class="accordion-collapse collapse" data-bs-parent="#accordionPenalties">
+                                        <div class="accordion-body bg-light rounded-bottom-3">
+                                            <div id="penalties-history-list" class="list-group list-group-flush"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                         <div id="settings-view" class="view-section d-none">
+                            <h5 class="fw-bold text-secondary mb-4 border-bottom pb-2">Hesap Ayarları</h5>
+                            <p class="text-muted">Güvenliğiniz için oturumunuzu kapatabilirsiniz.</p>
+                            <button class="btn btn-outline-danger px-4" onclick="Auth.logout()"><i class="bi bi-power me-2"></i>Güvenli Çıkış</button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        let currentUserId = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const userInfo = Auth.getUserInfo();
+            if (userInfo) {
+                currentUserId = userInfo.userId;
+                document.getElementById('nav-username').textContent = userInfo.username;
+                document.getElementById('profile-username').textContent = userInfo.username;
+                if (Auth.hasRole('ADMIN')) document.getElementById('admin-link').classList.remove('d-none');
+            } else Auth.logout();
+
+            document.getElementById('logout-button').addEventListener('click', (e) => { e.preventDefault(); Auth.logout(); });
+
+            // Sidebar Navigasyonu
+            document.querySelectorAll('.sidebar-menu .list-group-item').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // Aktif class değiştir
+                    document.querySelector('.sidebar-menu .active').classList.remove('active');
+                    e.currentTarget.classList.add('active');
+                    
+                    // Görünümü değiştir
+                    const targetId = e.currentTarget.dataset.target;
+                    document.querySelectorAll('.view-section').forEach(el => el.classList.add('d-none'));
+                    document.getElementById(targetId).classList.remove('d-none');
+                    
+                    // Lazy Load (İlgili veri yoksa yükle)
+                    if(targetId === 'favorites-view' && !document.getElementById('favorites-grid').hasChildNodes()) loadFavorites(0);
+                    if(targetId === 'comments-view' && !document.getElementById('comments-list').hasChildNodes()) loadMyComments(0);
+                    
+                    // --- HATA DÜZELTME BURADA ---
+                    // Eski kod: document.getElementById('penalties-list') arıyordu.
+                    // Yeni kod: document.getElementById('penalties-active-list') arıyor.
+                    if(targetId === 'penalties-view' && !document.getElementById('penalties-active-list').hasChildNodes()) loadMyPenalties();
+                });
+            });
+
+            // Başlangıç verileri
+            loadMyBorrowings();
+            updateStats(); // Üstteki sayaçları güncelle
+        });
+
+        // Üstteki İstatistikleri Güncelle (Basitçe mevcut endpointleri çağırıp sayısını alacağız)
+        async function updateStats() {
+            try {
+                // Paralel istek atalım
+                const [favRes, comRes, borRes] = await Promise.all([
+                    Api.getMyFavorites(0, 1), // Sadece totalElements lazım
+                    Api.getMyComments(0, 1),
+                    Api.getMyBorrowings(currentUserId)
+                ]);
+                
+                if(favRes.success) document.getElementById('stat-fav-count').innerText = favRes.data.totalElements || 0;
+                if(comRes.success) document.getElementById('stat-comment-count').innerText = comRes.data.totalElements || 0;
+                if(borRes.success) {
+                    // Sadece aktif ödünçleri say
+                    const active = borRes.data.filter(b => !b.returnDate).length;
+                    document.getElementById('stat-borrow-count').innerText = active;
+                }
+            } catch(e) { console.log('İstatistik hatası', e); }
+        }
+
+        // --- 1. ÖDÜNÇ KİTAPLAR (Kart tasarımı güncellendi) ---
+        async function loadMyBorrowings() {
+            const activeContainer = document.getElementById('borrowed-active-list');
+            const historyContainer = document.getElementById('borrowed-history-list');
+            
+            // Yükleniyor simgesi
+            activeContainer.innerHTML = '<div class="text-center w-100"><div class="spinner-border text-primary spinner-border-sm"></div></div>';
+            historyContainer.innerHTML = ''; 
+
+            try {
+                const res = await Api.getMyBorrowings(currentUserId);
+                activeContainer.innerHTML = ''; // Temizle
+
+                if (res.success && res.data.length > 0) {
+                    // Veriyi ikiye ayır: İade tarihi OLMAYANLAR (Aktif) ve OLANLAR (Geçmiş)
+                    const activeList = res.data.filter(item => !item.returnDate);
+                    const historyList = res.data.filter(item => item.returnDate);
+
+                    // --- AKTİF LİSTEYİ BAS ---
+                    if(activeList.length === 0) {
+                        activeContainer.innerHTML = '<div class="alert alert-light text-center text-muted border border-dashed">Şu an ödünçte kitabınız yok.</div>';
+                    } else {
+                        activeList.forEach(item => {
+                            const lastDate = new Date(item.lastReturnDate);
+                            const isLate = lastDate < new Date();
+                            const daysLeft = Math.ceil((lastDate - new Date()) / (1000 * 60 * 60 * 24));
+                            
+                            activeContainer.innerHTML += `
+                                <div class="col-md-12">
+                                    <div class="d-flex align-items-center bg-white p-3 rounded-3 shadow-sm border-start border-4 ${isLate ? 'border-danger' : 'border-primary'}">
+                                        <div class="bg-light p-2 rounded text-center me-3" style="min-width: 50px;">
+                                            <i class="bi bi-book fs-4 text-primary"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1 fw-bold">Kitap ID: ${item.bookId}</h6>
+                                            <div class="small ${isLate ? 'text-danger fw-bold' : 'text-muted'}">
+                                                <i class="bi bi-calendar-event me-1"></i> 
+                                                ${isLate ? `Süresi Geçti (${Math.abs(daysLeft)} gün)` : `Son Teslim: ${daysLeft} gün kaldı`}
+                                            </div>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <a href="/book-detail.html?id=${item.bookId}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
+                                            <button onclick="returnBook(${item.borrowingId})" class="btn btn-sm btn-primary"><i class="bi bi-arrow-return-left"></i> İade Et</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+
+                    // --- GEÇMİŞ LİSTEYİ BAS ---
+                    if(historyList.length === 0) {
+                        historyContainer.innerHTML = '<div class="text-center text-muted py-2 small">Geçmiş kayıt bulunamadı.</div>';
+                    } else {
+                        historyList.forEach(item => {
+                            // Tarih formatlama
+                            const rDate = new Date(item.returnDate).toLocaleDateString('tr-TR');
+                            historyContainer.innerHTML += `
+                                <div class="col-md-12">
+                                    <div class="d-flex align-items-center bg-white p-2 rounded border opacity-75">
+                                        <div class="me-3 text-secondary ps-2"><i class="bi bi-check-circle-fill"></i></div>
+                                        <div class="flex-grow-1">
+                                            <span class="fw-bold text-dark small">Kitap ID: ${item.bookId}</span>
+                                            <span class="d-block small text-muted">İade Tarihi: ${rDate}</span>
+                                        </div>
+                                        <a href="/book-detail.html?id=${item.bookId}" class="btn btn-sm btn-link text-secondary"><i class="bi bi-eye"></i></a>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+
+                } else {
+                    activeContainer.innerHTML = '<div class="text-center w-100 py-3 text-muted">Kayıt bulunamadı.</div>';
+                }
+            } catch(e) { 
+                console.error(e);
+                activeContainer.innerHTML = '<div class="alert alert-danger">Veriler yüklenirken hata oluştu.</div>'; 
+            }
+        }
+
+        async function returnBook(id) {
+            if(!confirm('İade edilsin mi?')) return;
+            try { const res = await Api.returnBook(id); if(res.success) { alert('İade edildi.'); loadMyBorrowings(); updateStats(); } else alert(res.message); } catch(e){}
+        }
+
+        // --- 2. FAVORİLER ---
+        async function loadFavorites(page) {
+            const grid = document.getElementById('favorites-grid');
+            const pagination = document.getElementById('favorites-pagination');
+            grid.innerHTML = '<div class="spinner-border mx-auto"></div>';
+            
+            try {
+                const res = await Api.getMyFavorites(page, 8);
+                grid.innerHTML = ''; pagination.innerHTML = '';
+                
+                if (res.success && res.data.content.length > 0) {
+                    res.data.content.forEach(book => {
+                        grid.innerHTML += `
+                            <div class="col" id="fav-item-${book.id}">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    <div class="position-relative">
+                                        <img src="${book.imageUrl || 'https://placehold.co/150x220'}" class="card-img-top" style="height: 180px; object-fit: cover;">
+                                        <button class="btn btn-sm btn-light text-danger position-absolute top-0 end-0 m-2 rounded-circle shadow-sm" onclick="removeFav(${book.id})"><i class="bi bi-heart-fill"></i></button>
+                                    </div>
+                                    <div class="card-body p-2">
+                                        <h6 class="card-title text-truncate small mb-0"><a href="/book-detail.html?id=${book.id}" class="text-dark text-decoration-none">${book.title}</a></h6>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    renderPagination(res.data, pagination, loadFavorites);
+                } else grid.innerHTML = '<div class="text-muted w-100 text-center">Favori yok.</div>';
+            } catch(e) { grid.innerHTML = 'Hata.'; }
+        }
+        async function removeFav(id) { 
+            if(confirm('Kaldırılsın mı?')) { await Api.toggleLike(id); document.getElementById(`fav-item-${id}`).remove(); updateStats(); } 
+        }
+
+        // --- 3. YORUMLAR (Balon tasarımı) ---
+        async function loadMyComments(page) {
+            const list = document.getElementById('comments-list');
+            const pagination = document.getElementById('comments-pagination');
+            list.innerHTML = '<div class="spinner-border mx-auto"></div>';
+            
+            try {
+                const res = await Api.getMyComments(page, 5);
+                list.innerHTML = ''; pagination.innerHTML = '';
+                
+                if (res.success && res.data.content.length > 0) {
+                    res.data.content.forEach(com => {
+                        const date = new Date(com.createTime).toLocaleDateString('tr-TR');
+                        list.innerHTML += `
+                             <div class="d-flex gap-3" id="com-row-${com.commentId}">
+                                <div class="flex-shrink-0 pt-1">
+                                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;"><i class="bi bi-person-fill"></i></div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <a href="/book-detail.html?id=${com.bookId}" class="fw-bold text-dark text-decoration-none small">Kitap ID: ${com.bookId}</a>
+                                        <small class="text-muted" style="font-size: 0.75rem;">${date}</small>
+                                    </div>
+                                    <div class="comment-bubble shadow-sm">
+                                        <p class="mb-0 text-secondary small">${com.content}</p>
+                                    </div>
+                                    <div class="mt-1">
+                                        <button class="btn btn-link btn-sm text-danger p-0 text-decoration-none" onclick="delCom(${com.commentId})"><small>Sil</small></button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    renderPagination(res.data, pagination, loadMyComments);
+                } else list.innerHTML = '<div class="text-muted text-center">Yorum yok.</div>';
+            } catch(e) { list.innerHTML = 'Hata.'; }
+        }
+        async function delCom(id) { 
+            if(confirm('Sil?')) { await Api.deleteComment(id); loadMyComments(0); updateStats(); } 
+        }
+
+        // --- 4. CEZALAR (Liste tasarımı) ---
+        // --- 4. CEZALAR (HATA AYIKLAMALI VE GÜNCELLENMİŞ VERSİYON) ---
+        async function loadMyPenalties() {
+            const activeContainer = document.getElementById('penalties-active-list');
+            const historyContainer = document.getElementById('penalties-history-list');
+
+            // Yükleniyor simgesi
+            activeContainer.innerHTML = '<div class="spinner-border text-danger spinner-border-sm mx-auto"></div>';
+            historyContainer.innerHTML = '';
+
+            try {
+                const res = await Api.getMyPenalties();
+                
+                // HATA AYIKLAMA: Tarayıcı konsoluna (F12) gelen veriyi yazdırıyoruz.
+                // Eğer çalışmazsa, konsoldaki bu çıktıya bakarak alan adlarını kontrol et.
+                console.log("Cezalar API Yanıtı:", res);
+
+                activeContainer.innerHTML = ''; // Temizle
+                
+                // Veri yapısı kontrolü (Backend liste mi yoksa sayfalama mı gönderiyor?)
+                let penalties = [];
+                if (res.success) {
+                    if (Array.isArray(res.data)) {
+                        penalties = res.data; // Direkt liste geliyorsa
+                    } else if (res.data && Array.isArray(res.data.content)) {
+                        penalties = res.data.content; // Sayfalı yapı geliyorsa (.content)
+                    }
+                }
+
+                if (penalties.length > 0) {
+                    // "Ödendi" kontrolü için backend'deki duruma bakıyoruz.
+                    // NOT: Backend'de enum adı 'PAID' değilse (örn: 'ODENDI', 'Paid' vs.) burayı güncellemelisin.
+                    const unpaidList = penalties.filter(p => p.stateOfPenalty !== 'PAID');
+                    const paidList = penalties.filter(p => p.stateOfPenalty === 'PAID');
+
+                    // --- ÖDENMEMİŞ (AKTİF) ---
+                    if(unpaidList.length > 0) {
+                        unpaidList.forEach(p => {
+                            activeContainer.innerHTML += `
+                                <div class="list-group-item d-flex justify-content-between align-items-center bg-danger bg-opacity-10 border border-danger rounded mb-2">
+                                    <div>
+                                        <h5 class="mb-0 text-danger fw-bold">${p.amount} TL</h5>
+                                        <small class="text-danger opacity-75">
+                                            Ceza ID: ${p.id || p.penaltyId} <br> 
+                                            <span class="text-muted" style="font-size:0.75rem">${p.description || 'Gecikme Cezası'}</span>
+                                        </small>
+                                    </div>
+                                    <button onclick="payPen(${p.id || p.penaltyId}, ${p.amount})" class="btn btn-sm btn-danger shadow-sm px-3">Öde</button>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        activeContainer.innerHTML = '<div class="text-success text-center py-3 border border-success border-dashed rounded bg-success bg-opacity-10"><i class="bi bi-check-circle fs-3"></i><br>Harika! Ödenmemiş cezanız yok.</div>';
+                    }
+
+                    // --- ÖDENMİŞ (GEÇMİŞ) ---
+                    if(paidList.length > 0) {
+                        paidList.forEach(p => {
+                            historyContainer.innerHTML += `
+                                <div class="list-group-item d-flex justify-content-between align-items-center bg-white border-bottom">
+                                    <div>
+                                        <span class="fw-bold text-success text-decoration-line-through">${p.amount} TL</span>
+                                        <small class="text-muted ms-2">Ceza ID: ${p.id || p.penaltyId}</small>
+                                    </div>
+                                    <span class="badge bg-success bg-opacity-75"><i class="bi bi-check-all"></i> Ödendi</span>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        historyContainer.innerHTML = '<div class="p-3 text-center text-muted small">Geçmiş ceza kaydı yok.</div>';
+                    }
+
+                } else {
+                    // Hiç veri yoksa
+                    activeContainer.innerHTML = '<div class="text-success text-center py-3 border border-success border-dashed rounded bg-success bg-opacity-10"><i class="bi bi-check-circle fs-3"></i><br>Harika! Hiç cezanız yok.</div>';
+                }
+
+            } catch(e) { 
+                console.error("Ceza yükleme hatası:", e);
+                activeContainer.innerHTML = '<div class="alert alert-danger">Veriler yüklenirken hata oluştu.</div>'; 
+            }
+        }
+        async function payPen(id, amt) {
+            if(confirm('Ödensin mi?')) { await Api.payPenalty(id, amt); loadMyPenalties(); }
+        }
+
+        // Pagination Helper
+        function renderPagination(pageInfo, container, loadFn) {
+            if (pageInfo.totalPages <= 1) return;
+            const btn = (t,p,a,d) => `<button onclick="${d?'':'loadFn('+p+')'}" class="btn btn-sm mx-1 ${a?'btn-primary':'btn-light'}" ${d?'disabled':''}>${t}</button>`;
+            
+            // loadFn fonksiyonunu global scope'da çağırmak için string olarak fonksiyona erişmeliyiz veya
+            // basitçe onclick içine fonksiyon adını string olarak değil direkt JS referansı olarak veremediğimizden (innerHTML ile ekliyoruz),
+            // window objesine bu fonksiyonları bağlayabiliriz veya daha temiz bir event listener yapısı kurabiliriz.
+            // Ancak bu basit yapı için window'a atamak en kolayıdır.
+            window.loadFnRef = loadFn; // Geçici referans
+            
+            let html = '';
+            html += `<button class="btn btn-sm btn-light mx-1" onclick="window.loadFnRef(${pageInfo.number-1})" ${pageInfo.first?'disabled':''}>«</button>`;
+            html += `<button class="btn btn-sm btn-light mx-1" onclick="window.loadFnRef(${pageInfo.number+1})" ${pageInfo.last?'disabled':''}>»</button>`;
+            container.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

@@ -232,6 +232,12 @@ const Api = {
             body: JSON.stringify({ content: content })
         });
     },
+
+    // Kullanıcının kendi yorumlarını getirir
+    getMyComments: (page = 0, size = 10) => {
+        return Api.fetch(`/api/comments/my-comments?page=${page}&size=${size}&sort=createTime,desc`, { method: "GET" });
+    },
+
     // --- BEĞENİ (LIKE) ENDPOINTLERİ ---
     toggleLike: (bookId) => {
         return Api.fetch(`/api/likes/${bookId}`, { method: "POST" });
@@ -243,5 +249,9 @@ const Api = {
     
     getLikeCount: (bookId) => {
         return Api.fetch(`/api/likes/${bookId}/count`, { method: "GET" });
+    },
+    
+    getMyFavorites: (page = 0, size = 20) => {
+        return Api.fetch(`/api/likes/my-favorites?page=${page}&size=${size}`, { method: "GET" });
     }
 };

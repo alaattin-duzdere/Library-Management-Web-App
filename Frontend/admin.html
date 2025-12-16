@@ -3,610 +3,626 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Paneli - Kütüphane Yönetimi</title>
+    <title>Admin Paneli - Kütüphane</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+    <link rel="stylesheet" href="css/style.css">
 
     <script src="js/auth.js"></script>
     <script>
-        // Kullanıcı giriş yapmamışsa login sayfasına at
-        if (!Auth.isLoggedIn()) {
-            window.location.href = '/login.html';
-        } 
-        // Giriş yapmış ama ADMIN değilse ana sayfaya at
-        else if (!Auth.hasRole('ADMIN')) {
-            alert('Bu sayfaya erişim yetkiniz yok.');
-            window.location.href = '/index.html';
-        }
+        // Yetki Kontrolü
+        if (!Auth.isLoggedIn()) { window.location.href = '/login.html'; }
+        else if (!Auth.hasRole('ADMIN')) { alert('Yetkisiz erişim.'); window.location.href = '/index.html'; }
     </script>
 
     <style>
-        /* Choices.js arayüz düzeltmeleri */
-        .choices__inner { background-color: #fff; border-radius: 0.375rem; min-height: 38px; }
-        .search-box { max-width: 300px; }
-        .table > :not(caption) > * > * { vertical-align: middle; }
+        body { background-color: #f3f4f6; }
+
+        /* Sidebar & Kart Stilleri (Diğer sayfalarla uyumlu) */
+        .sidebar-card, .content-card { border: none; border-radius: 12px; overflow: visible; background: #fff; }
         
-        /* Filtreleme alanı tasarımı */
-        .admin-filter-area {
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 0.375rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
+        .sidebar-menu .list-group-item {
+            border: none; padding: 12px 20px; font-weight: 500; color: #6c757d;
+            transition: all 0.2s; display: flex; align-items: center; cursor: pointer;
         }
-        /* Dropdown menünün diğer elemanların altında kalmaması için */
-        .choices__list--dropdown { z-index: 1050; }
+        .sidebar-menu .list-group-item:hover { background-color: #f8f9fa; color: #0d6efd; padding-left: 25px; }
+        .sidebar-menu .list-group-item.active {
+            background-color: #e7f1ff; color: #0d6efd; border-left: 4px solid #0d6efd;
+        }
+        .sidebar-menu i { font-size: 1.2rem; margin-right: 12px; width: 24px; text-align: center; }
+
+        /* Form ve Tablo Alanları */
+        .form-header { background-color: #f8f9fa; border-bottom: 1px solid #eee; padding: 15px 20px; }
+        .table img { width: 40px; height: 60px; object-fit: cover; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         
-        /* Dropdown içinde sonsuz kaydırma (Infinite Scroll) için gerekli stil */
-        .choices__list--dropdown .choices__list {
-            max-height: 250px;
-            overflow-y: auto;
-            overscroll-behavior: contain;
+        /* Choices.js Düzeltmeleri */
+        .choices__inner { background-color: #fff; border-radius: 8px; border: 1px solid #dee2e6; min-height: 40px; }
+        .choices__list--dropdown { z-index: 1050 !important; word-break: break-word; }
+        .choices__list--dropdown .choices__list { max-height: 250px; overflow-y: auto; }
+        /* Dropdown ve Select kutularının (Choices.js veya standart select) en üstte görünmesini sağlar */
+        .choices__list--dropdown, .dropdown-menu {
+            z-index: 1050 !important; /* Bootstrap modal'ın da üstünde olsun */
+            visibility: visible !important;
         }
+
+        /* Tablonun bulunduğu kartın taşmayı gizlemesini engeller, böylece liste dışarı taşabilir */
+        .card-body, .table-responsive {
+            overflow: visible !important; 
+        }
+        .filter-row {
+            position: relative;
+            z-index: 1000;
+        }
+                
+        /* Modal */
+        .modal-content { border: none; border-radius: 12px; }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="/index.html">Kütüphane</a>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/index.html"><i class="bi bi-book-half"></i> Kütüphane YÖNETİM</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="/index.html">Kitaplar</a></li>
-                    <li class="nav-item"><a class="nav-link active" href="/admin.html">Admin Paneli</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#" id="logout-button">Çıkış Yap <i class="bi bi-box-arrow-right"></i></a></li>
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item me-2"><a class="nav-link" href="/index.html">Siteye Dön</a></li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown">
+                            <div class="bg-danger rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                <i class="bi bi-shield-lock-fill"></i>
+                            </div>
+                            <span id="nav-username">Admin</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow">
+                            <li><a class="dropdown-item" href="/profile.html">Profilim</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" id="logout-button">Çıkış</a></li>
+                        </ul>
+                    </li>
                 </ul>
             </div>
         </div>
     </nav>
 
-    <div class="container mt-5">
-        <div id="admin-alert" class="alert d-none" role="alert"></div>
+    <div class="container py-4">
+        <div id="admin-alert" class="alert d-none shadow-sm border-0" role="alert"></div>
 
-        <ul class="nav nav-tabs" id="adminTabs" role="tablist">
-            <li class="nav-item"><button class="nav-link active" id="books-tab" data-bs-toggle="tab" data-bs-target="#books-panel" type="button">Kitap Yönetimi</button></li>
-            <li class="nav-item"><button class="nav-link" id="authors-tab" data-bs-toggle="tab" data-bs-target="#authors-panel" type="button">Yazar Yönetimi</button></li>
-            <li class="nav-item"><button class="nav-link" id="categories-tab" data-bs-toggle="tab" data-bs-target="#categories-panel" type="button">Kategori Yönetimi</button></li>
-        </ul>
+        <div class="row g-4">
+            <div class="col-lg-3">
+                <div class="card sidebar-card shadow-sm">
+                    <div class="card-body p-0">
+                        <div class="p-3 border-bottom bg-light">
+                            <small class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem;">Yönetim Paneli</small>
+                        </div>
+                        <div class="list-group list-group-flush sidebar-menu" id="admin-menu">
+                            <div class="list-group-item active" data-target="books-panel">
+                                <i class="bi bi-book"></i> Kitap İşlemleri
+                            </div>
+                            <div class="list-group-item" data-target="authors-panel">
+                                <i class="bi bi-person-lines-fill"></i> Yazar İşlemleri
+                            </div>
+                            <div class="list-group-item" data-target="categories-panel">
+                                <i class="bi bi-tags"></i> Kategori İşlemleri
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        <div class="tab-content" id="adminTabsContent">
-            
-            <div class="tab-pane fade show active p-3 border border-top-0" id="books-panel">
+            <div class="col-lg-9">
                 
-                <div class="card mb-4 border-0 shadow-sm">
-                    <div class="card-body bg-light">
-                        <h5 class="card-title mb-3 text-primary"><i class="bi bi-plus-circle"></i> Kitap Ekle / Güncelle</h5>
-                        <form id="book-form">
-                            <input type="hidden" id="book-id">
-                            <div class="row g-3">
-                                <div class="col-md-6"><label for="book-title" class="form-label small fw-bold">Kitap Adı</label><input type="text" class="form-control" id="book-title" required></div>
-                                <div class="col-md-3"><label for="book-isbn" class="form-label small fw-bold">ISBN</label><input type="number" class="form-control" id="book-isbn" required></div>
-                                <div class="col-md-3"><label for="book-pages" class="form-label small fw-bold">Sayfa Sayısı</label><input type="number" class="form-control" id="book-pages" required></div>
-                                <div class="col-md-6"><label for="book-authors" class="form-label small fw-bold">Yazarlar</label><select class="form-control" id="book-authors" multiple required></select></div>
-                                <div class="col-md-6"><label for="book-categories" class="form-label small fw-bold">Kategoriler</label><select class="form-control" id="book-categories" multiple required></select></div>
-                                <div class="col-12 text-end">
-                                    <button type="button" class="btn btn-secondary me-2" id="btn-reset-book-form">Temizle</button>
-                                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                <div id="books-panel" class="view-section">
+                    <div class="card content-card shadow-sm mb-4">
+                        <div class="form-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 fw-bold text-primary"><i class="bi bi-plus-circle me-2"></i>Kitap Ekle / Düzenle</h6>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-reset-book-form">Formu Temizle</button>
+                        </div>
+                        <div class="card-body">
+                            <form id="book-form">
+                                <input type="hidden" id="book-id">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">Kitap Adı</label>
+                                        <input type="text" class="form-control" id="book-title" required placeholder="Örn: Sefiller">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small text-muted">ISBN</label>
+                                        <input type="number" class="form-control" id="book-isbn" required placeholder="13 hane">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small text-muted">Sayfa</label>
+                                        <input type="number" class="form-control" id="book-pages" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">Yazar(lar)</label>
+                                        <select class="form-control" id="book-authors" multiple required></select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">Kategori(ler)</label>
+                                        <select class="form-control" id="book-categories" multiple required></select>
+                                    </div>
+                                    <div class="col-12 text-end mt-3">
+                                        <button type="submit" class="btn btn-primary px-4"><i class="bi bi-save me-1"></i> Kaydet</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card content-card shadow-sm">
+                        <div class="card-body">
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-4"><input type="text" id="filter-book-search" class="form-control" placeholder="Ara: Başlık, ISBN..."></div>
+                                <div class="col-md-3"><select class="form-control" id="filter-book-category"></select></div>
+                                <div class="col-md-3"><select class="form-control" id="filter-book-author"></select></div>
+                                <div class="col-md-2"><button class="btn btn-light border w-100" id="btn-clear-book-filters">Temizle</button></div>
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead class="table-light"><tr><th>ID</th><th>Kitap</th><th>ISBN</th><th>Durum</th><th class="text-end">İşlemler</th></tr></thead>
+                                    <tbody id="books-table-body"></tbody>
+                                </table>
+                            </div>
+                            <nav class="mt-3"><ul class="pagination justify-content-center" id="books-pagination"></ul></nav>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="authors-panel" class="view-section d-none">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card content-card shadow-sm h-100">
+                                <div class="form-header fw-bold text-primary">Yazar İşlemi</div>
+                                <div class="card-body">
+                                    <form id="author-form">
+                                        <input type="hidden" id="author-id">
+                                        <div class="mb-3">
+                                            <label class="form-label small">Ad</label>
+                                            <input type="text" class="form-control" id="author-firstName" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label small">Soyad</label>
+                                            <input type="text" class="form-control" id="author-lastName" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary w-100">Kaydet</button>
+                                        <button type="button" class="btn btn-sm btn-link text-muted w-100 mt-2" onclick="document.getElementById('author-form').reset();document.getElementById('author-id').value='';">Temizle</button>
+                                    </form>
                                 </div>
                             </div>
-                        </form>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="card content-card shadow-sm h-100">
+                                <div class="card-body">
+                                    <div class="input-group mb-3">
+                                        <input type="text" id="search-authors" class="form-control" placeholder="Yazar ara...">
+                                        <button class="btn btn-outline-secondary" type="button"><i class="bi bi-search"></i></button>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle">
+                                            <thead class="table-light"><tr><th>ID</th><th>Ad Soyad</th><th class="text-end">İşlemler</th></tr></thead>
+                                            <tbody id="authors-table-body"></tbody>
+                                        </table>
+                                    </div>
+                                    <nav class="mt-2"><ul class="pagination justify-content-center" id="authors-pagination"></ul></nav>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                
-                <hr>
 
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h4>Mevcut Kitaplar</h4>
-                </div>
-                
-                <div class="admin-filter-area">
-                    <div class="row g-2 align-items-center">
+                <div id="categories-panel" class="view-section d-none">
+                    <div class="row">
                         <div class="col-md-4">
-                            <input type="text" id="filter-book-search" class="form-control" placeholder="Kitap Ara (Başlık, ISBN)...">
+                            <div class="card content-card shadow-sm h-100">
+                                <div class="form-header fw-bold text-primary">Kategori İşlemi</div>
+                                <div class="card-body">
+                                    <form id="category-form">
+                                        <input type="hidden" id="category-id">
+                                        <div class="mb-3">
+                                            <label class="form-label small">Kategori Adı</label>
+                                            <input type="text" class="form-control" id="category-name" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary w-100">Kaydet</button>
+                                        <button type="button" class="btn btn-sm btn-link text-muted w-100 mt-2" onclick="document.getElementById('category-form').reset();document.getElementById('category-id').value='';">Temizle</button>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-3">
-                            <select class="form-control" id="filter-book-category"></select>
-                        </div>
-                        <div class="col-md-3">
-                            <select class="form-control" id="filter-book-author"></select>
-                        </div>
-                        <div class="col-md-2">
-                            <button class="btn btn-outline-secondary w-100" id="btn-clear-book-filters"><i class="bi bi-x-lg"></i> Temizle</button>
+                        <div class="col-md-8">
+                            <div class="card content-card shadow-sm h-100">
+                                <div class="card-body">
+                                    <div class="input-group mb-3">
+                                        <input type="text" id="search-categories" class="form-control" placeholder="Kategori ara...">
+                                        <button class="btn btn-outline-secondary" type="button"><i class="bi bi-search"></i></button>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle">
+                                            <thead class="table-light"><tr><th>ID</th><th>Kategori Adı</th><th class="text-end">İşlemler</th></tr></thead>
+                                            <tbody id="categories-table-body"></tbody>
+                                        </table>
+                                    </div>
+                                    <nav class="mt-2"><ul class="pagination justify-content-center" id="categories-pagination"></ul></nav>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <table class="table table-striped table-hover align-middle">
-                    <thead><tr><th>ID</th><th>Başlık</th><th>ISBN</th><th>Durum</th><th>İşlemler</th></tr></thead>
-                    <tbody id="books-table-body"></tbody>
-                </table>
-                <nav class="mt-3"><ul class="pagination justify-content-center" id="books-pagination"></ul></nav>
-            </div>
-            
-            <div class="tab-pane fade p-3 border border-top-0" id="authors-panel">
-                <h4>Yazar Ekle / Güncelle</h4>
-                <form id="author-form" class="row g-3 mb-4">
-                    <input type="hidden" id="author-id">
-                    <div class="col-md-5"><label for="author-firstName" class="form-label">Ad</label><input type="text" class="form-control" id="author-firstName" required></div>
-                    <div class="col-md-5"><label for="author-lastName" class="form-label">Soyad</label><input type="text" class="form-control" id="author-lastName" required></div>
-                    <div class="col-md-2 align-self-end"><button type="submit" class="btn btn-primary w-100">Kaydet</button></div>
-                </form>
-                <hr>
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4>Mevcut Yazarlar</h4>
-                    <div class="search-box"><input type="text" id="search-authors" class="form-control" placeholder="Yazar ara..."></div>
-                </div>
-                <table class="table table-striped table-hover align-middle">
-                    <thead><tr><th>ID</th><th>Ad</th><th>Soyad</th><th>İşlemler</th></tr></thead>
-                    <tbody id="authors-table-body"></tbody>
-                </table>
-                <nav class="mt-3"><ul class="pagination justify-content-center" id="authors-pagination"></ul></nav>
-            </div>
-
-            <div class="tab-pane fade p-3 border border-top-0" id="categories-panel">
-                <h4>Kategori Ekle / Güncelle</h4>
-                <form id="category-form" class="row g-3 mb-4">
-                    <input type="hidden" id="category-id">
-                    <div class="col-md-10"><label for="category-name" class="form-label">Kategori Adı</label><input type="text" class="form-control" id="category-name" required></div>
-                    <div class="col-md-2 align-self-end"><button type="submit" class="btn btn-primary w-100">Kaydet</button></div>
-                </form>
-                <hr>
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4>Mevcut Kategoriler</h4>
-                    <div class="search-box"><input type="text" id="search-categories" class="form-control" placeholder="Kategori ara..."></div>
-                </div>
-                <table class="table table-striped table-hover align-middle">
-                    <thead><tr><th>ID</th><th>Kategori Adı</th><th>İşlemler</th></tr></thead>
-                    <tbody id="categories-table-body"></tbody>
-                </table>
-                <nav class="mt-3"><ul class="pagination justify-content-center" id="categories-pagination"></ul></nav>
             </div>
         </div>
     </div>
 
-    <div class="modal fade" id="imageUploadModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="imageUploadModalLabel">Kitap Resmi Yükle</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><form id="image-upload-form"><input type="hidden" id="upload-book-id"><div class="mb-3"><label for="book-image-file" class="form-label">Dosya seçin (PNG, JPG, GIF)</label><input class="form-control" type="file" id="book-image-file" accept="image/png, image/jpeg, image/gif" required></div><button type="submit" class="btn btn-primary" id="upload-button">Yükle</button></form></div></div></div>
+    <div class="modal fade" id="imageUploadModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imageUploadModalLabel">Kitap Resmi Yükle</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="image-upload-form">
+                        <input type="hidden" id="upload-book-id">
+                        <div class="mb-3">
+                            <label class="form-label">Dosya seçin</label>
+                            <input class="form-control" type="file" id="book-image-file" accept="image/*" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Yükle</button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center" id="pagination"></ul>
+    </nav>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
     <script src="js/api.js"></script>
+    
     <script>
-        // --- GLOBAL DEĞİŞKENLER ---
-        let imageUploadModal = null; // Bootstrap modal referansı
-        let currentBookPage = 0, currentAuthorPage = 0, currentCategoryPage = 0; // Mevcut sayfa numaraları
-        const pageSize = 25; // Tablolarda sayfa başına gösterilecek kayıt sayısı
-        
-        // Choices.js (Açılır Menü) Referansları
-        // Form için (Ekleme/Düzenleme)
-        let formAuthorChoices = null, formCategoryChoices = null;
-        // Filtreleme için (Listeleme)
-        let filterAuthorChoices = null, filterCategoryChoices = null;
-        
-        // Filtreleme Durumları
-        let bookSearchTerm = "", bookFilterCat = "", bookFilterAuth = "";
-        let authorSearchTerm = "", categorySearchTerm = "";
-        
-        // Dropdown içinde API yükleme durumları
-        let authorDropdownPage = 0, categoryDropdownPage = 0;
-        let isAuthorLoading = false, isCategoryLoading = false;
-        
-        // Selectlerin ilk dolumunun bitmesini beklemek için Promise
+        // --- GLOBAL & SETUP ---
+        let imageUploadModal;
+        let currentBookPage = 0, currentAuthorPage = 0, currentCategoryPage = 0;
+        const pageSize = 15;
+
+        // Choices Instances
+        let formAuthorChoices, formCategoryChoices, filterAuthorChoices, filterCategoryChoices;
         let selectsLoadingPromise = null;
+        
+        // Filtre Durumları
+        let bookSearch="", bookCat="", bookAuth="";
+        let authorSearch="", categorySearch="";
 
-        /**
-         * DEBOUNCE FONKSİYONU
-         * Bir fonksiyonun çok sık tetiklenmesini engeller.
-         * Özellikle arama kutularında her tuşa basıldığında API isteği atmamak için kullanılır.
-         * @param {Function} func - Çalıştırılacak fonksiyon
-         * @param {number} wait - Bekleme süresi (ms)
-         */
-        const debounce = (func, wait) => { let timeout; return function(...args) { const context = this; clearTimeout(timeout); timeout = setTimeout(() => func.apply(context, args), wait); }; };
+        // Debounce Helper
+        const debounce = (func, wait) => { let timeout; return function(...args){ clearTimeout(timeout); timeout=setTimeout(()=>func.apply(this,args), wait); }; };
 
-        // --- SAYFA YÜKLENDİĞİNDE ÇALIŞACAKLAR ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Çıkış yap butonu
-            document.getElementById('logout-button').addEventListener('click', (e) => { e.preventDefault(); Auth.logout(); });
-            
-            // Form Submit Listener'ları
-            document.getElementById('author-form').addEventListener('submit', handleAuthorFormSubmit);
-            document.getElementById('category-form').addEventListener('submit', handleCategoryFormSubmit);
-            document.getElementById('book-form').addEventListener('submit', handleBookFormSubmit);
-            document.getElementById('btn-reset-book-form').addEventListener('click', resetBookForm);
-            
-            // Yazar ve Kategori Tablosu Arama (Debounce ile gecikmeli)
-            document.getElementById('search-authors').addEventListener('input', debounce((e) => loadAuthorsTable(0, e.target.value), 500));
-            document.getElementById('search-categories').addEventListener('input', debounce((e) => loadCategoriesTable(0, e.target.value), 500));
+            // Navbar
+            const user = Auth.getUserInfo();
+            if(user) document.getElementById('nav-username').textContent = user.username;
+            document.getElementById('logout-button').addEventListener('click', (e)=>{e.preventDefault(); Auth.logout();});
 
-            // Kitap Yönetim Filtreleri
-            document.getElementById('filter-book-search').addEventListener('input', debounce((e) => {
-                bookSearchTerm = e.target.value.trim();
-                loadBooksTable(0); // Aramada her zaman 0. sayfaya dön
-            }, 500));
-            
-            // Filtreleri Temizle Butonu
-            document.getElementById('btn-clear-book-filters').addEventListener('click', () => {
-                document.getElementById('filter-book-search').value = "";
-                // Choices.js seçimlerini temizle
-                if(filterAuthorChoices) filterAuthorChoices.removeActiveItems();
-                if(filterCategoryChoices) filterCategoryChoices.removeActiveItems();
-                // Değişkenleri sıfırla
-                bookSearchTerm = ""; bookFilterCat = ""; bookFilterAuth = "";
-                loadBooksTable(0);
+            // Sidebar Navigation
+            document.querySelectorAll('.sidebar-menu .list-group-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    document.querySelector('.sidebar-menu .active').classList.remove('active');
+                    e.currentTarget.classList.add('active');
+                    
+                    document.querySelectorAll('.view-section').forEach(el => el.classList.add('d-none'));
+                    const target = e.currentTarget.dataset.target;
+                    document.getElementById(target).classList.remove('d-none');
+                    
+                    // Lazy Load data
+                    if(target === 'authors-panel' && !document.getElementById('authors-table-body').hasChildNodes()) loadAuthorsTable(0);
+                    if(target === 'categories-panel' && !document.getElementById('categories-table-body').hasChildNodes()) loadCategoriesTable(0);
+                });
             });
 
-            // Resim Yükleme Modalı kurulumu
+            // Modal Init
             imageUploadModal = new bootstrap.Modal(document.getElementById('imageUploadModal'));
-            document.getElementById('image-upload-form').addEventListener('submit', handleImageUploadSubmit);
 
-            // Başlatma İşlemleri
-            initChoices(); // Dropdownları kur
-            loadInitialData(); // Tabloları doldur
+            // Event Listeners (Forms & Filters)
+            setupEventListeners();
+            
+            // Start
+            initChoices();
+            loadInitialData();
         });
 
-        // --- CHOICES.JS KURULUMU (Scroll Fix ve Dinamik Arama) ---
-        function initChoices() {
-            // Form Selectleri (Çoklu seçim, API destekli)
-            formAuthorChoices = setupChoicesWithScroll('#book-authors', 'Yazar ekle...', true);
-            formCategoryChoices = setupChoicesWithScroll('#book-categories', 'Kategori ekle...', true);
+        function setupEventListeners() {
+            // Forms
+            document.getElementById('book-form').addEventListener('submit', handleBookFormSubmit);
+            document.getElementById('btn-reset-book-form').addEventListener('click', resetBookForm);
+            document.getElementById('author-form').addEventListener('submit', handleAuthorFormSubmit);
+            document.getElementById('category-form').addEventListener('submit', handleCategoryFormSubmit);
+            document.getElementById('image-upload-form').addEventListener('submit', handleImageUploadSubmit);
 
-            // Filtre Selectleri (Tekli seçim, API destekli)
-            filterAuthorChoices = setupChoicesWithScroll('#filter-book-author', 'Yazar filtrele...', false);
-            filterCategoryChoices = setupChoicesWithScroll('#filter-book-category', 'Kategori filtrele...', false);
-
-            // Filtre seçim olaylarını dinle
-            filterAuthorChoices.passedElement.element.addEventListener('change', (e) => {
-                bookFilterAuth = e.detail.value;
-                loadBooksTable(0);
-            });
-            filterCategoryChoices.passedElement.element.addEventListener('change', (e) => {
-                bookFilterCat = e.detail.value;
-                loadBooksTable(0);
+            // Filters (Debounce)
+            document.getElementById('filter-book-search').addEventListener('input', debounce((e)=>{ bookSearch=e.target.value.trim(); loadBooksTable(0); }, 500));
+            document.getElementById('search-authors').addEventListener('input', debounce((e)=>{ authorSearch=e.target.value.trim(); loadAuthorsTable(0); }, 500));
+            document.getElementById('search-categories').addEventListener('input', debounce((e)=>{ categorySearch=e.target.value.trim(); loadCategoriesTable(0); }, 500));
+            
+            // Clear Filters
+            document.getElementById('btn-clear-book-filters').addEventListener('click', ()=>{
+                document.getElementById('filter-book-search').value="";
+                filterAuthorChoices.removeActiveItems(); filterCategoryChoices.removeActiveItems();
+                bookSearch=""; bookCat=""; bookAuth=""; loadBooksTable(0);
             });
         }
 
-        /**
-         * Choices.js yapılandırmasını ve eventlerini ayarlayan yardımcı fonksiyon.
-         * Dropdown içinde aşağı kaydırdıkça yeni veri yükleme (Infinite Scroll)
-         * ve arama yaptıkça API'den veri getirme işlemlerini yönetir.
-         */
-        function setupChoicesWithScroll(selector, placeholder, isMultiple) {
-            const choices = new Choices(selector, {
-                removeItemButton: true, searchEnabled: true, searchChoices: false, // searchChoices: false -> Client side aramayı kapat, biz yöneteceğiz
-                placeholder: true, placeholderValue: placeholder, 
-                itemSelectText: '', shouldSort: false, renderChoiceLimit: -1, loadingText: '...',
-            });
+        async function loadInitialData() {
+            await loadBooksTable(0);
+            selectsLoadingPromise = populateAllSelects(); // Dropdownları doldur
+        }
 
+        function showAlert(msg, type='success') {
+            const el=document.getElementById('admin-alert');
+            el.textContent=msg; el.className=`alert alert-${type} shadow-sm border-0`; el.classList.remove('d-none');
+            window.scrollTo(0,0); setTimeout(()=>el.classList.add('d-none'), 4000);
+        }
+
+        // --- CHOICES.JS CONFIG (Infinite Scroll Uyumlu) ---
+        function initChoices() {
+            // Helper to create instance
+            const createChoice = (sel, ph, multi) => {
+                const c = new Choices(sel, {
+                    removeItemButton: true, searchEnabled: true, searchChoices: false,
+                    placeholder: true, placeholderValue: ph, itemSelectText: '',
+                    shouldSort: false, renderChoiceLimit: -1, loadingText: '...'
+                });
+                setupChoicesEvents(c, sel.includes('author'));
+                return c;
+            };
+
+            formAuthorChoices = createChoice('#book-authors', 'Yazar ekle...', true);
+            formCategoryChoices = createChoice('#book-categories', 'Kategori ekle...', true);
+            filterAuthorChoices = createChoice('#filter-book-author', 'Yazar filtrele...', false);
+            filterCategoryChoices = createChoice('#filter-book-category', 'Kategori filtrele...', false);
+
+            // Filter Change Events
+            filterAuthorChoices.passedElement.element.addEventListener('change', (e)=>{ bookAuth=e.detail.value; loadBooksTable(0); });
+            filterCategoryChoices.passedElement.element.addEventListener('change', (e)=>{ bookCat=e.detail.value; loadBooksTable(0); });
+        }
+
+        function setupChoicesEvents(choiceInstance, isAuth) {
             let page = 0, query = "", loading = false;
-            const isAuth = selector.includes('author'); // Yazar mı kategori mi kontrolü
-
-            // 1. Arama Eventi (Kullanıcı dropdown içinde yazı yazdığında)
-            choices.passedElement.element.addEventListener('search', debounce(async (event) => {
-                const val = event.detail.value; if(val === query) return;
-                query = val; page = 0; // Yeni aramada sayfayı sıfırla
-                if(val.length < 2) return; // En az 2 karakter girilmeli
+            
+            // Search
+            choiceInstance.passedElement.element.addEventListener('search', debounce(async (e) => {
+                const val = e.detail.value; if(val===query) return;
+                query=val; page=0; if(val.length<2) return;
                 try {
                     const res = isAuth ? await Api.getAuthors(0, 20, query) : await Api.getCategories(0, 20, query);
                     if(res.success) {
-                        const items = (res.data.content||[]).map(i => ({ value: i.id, label: isAuth ? `${i.firstName} ${i.lastName}` : i.categoryName }));
-                        choices.setChoices(items, 'value', 'label', true); // true -> önceki listeyi temizle ve yenisini koy
+                        const items = (res.data.content||[]).map(i=>({value:i.id, label: isAuth?`${i.firstName} ${i.lastName}`:i.categoryName}));
+                        choiceInstance.setChoices(items, 'value', 'label', true);
                     }
                 } catch(e){}
             }, 500));
 
-            // 2. Dropdown Açılma ve Scroll Eventi (Sonsuz Kaydırma)
-            choices.passedElement.element.addEventListener('showDropdown', () => {
-                const list = choices.dropdown.element.querySelector('.choices__list');
-                // Scroll eventi sadece bir kere eklenmeli
+            // Infinite Scroll
+            choiceInstance.passedElement.element.addEventListener('showDropdown', () => {
+                const list = choiceInstance.dropdown.element.querySelector('.choices__list');
                 if(list && !list.hasAttribute('data-scroll')) {
                     list.setAttribute('data-scroll', 'true');
-                    list.addEventListener('scroll', async (e) => {
-                        // Sayfanın sonuna gelindi mi kontrolü
-                        if (list.scrollTop + list.clientHeight >= list.scrollHeight - 100 && !loading) {
-                            loading = true;
-                            const currentScrollTop = list.scrollTop;
-                            page++; // Sonraki sayfayı iste
+                    list.addEventListener('scroll', async () => {
+                        if(list.scrollTop + list.clientHeight >= list.scrollHeight - 50 && !loading) {
+                            loading=true; const currentScroll = list.scrollTop; page++;
                             try {
                                 const res = isAuth ? await Api.getAuthors(page, 20, query) : await Api.getCategories(page, 20, query);
                                 if(res.success && res.data.content.length > 0) {
-                                    const items = res.data.content.map(i => ({ value: i.id, label: isAuth ? `${i.firstName} ${i.lastName}` : i.categoryName }));
-                                    choices.setChoices(items, 'value', 'label', false); // false -> mevcut listeye ekle (append)
-                                    // Eski Kod:
-                                    // setTimeout(() => { list.scrollTop = currentScrollTop; }, 0);
-
-                                    // Yeni ve Güvenli Kod:
-                                    requestAnimationFrame(() => {
-                                        // Liste hala DOM'da mı kontrol et (Referans kaybı önlemi)
-                                        if (list && list.isConnected) {
-                                            list.scrollTop = currentScrollTop;
-                                        } else {
-                                            // Eğer element silinip yenisi geldiyse, yenisini bulup ona uygula
-                                            const newList = choices.dropdown.element.querySelector('.choices__list');
-                                            if (newList) newList.scrollTop = currentScrollTop;
-                                        }
-                                    });
+                                    const items = res.data.content.map(i=>({value:i.id, label: isAuth?`${i.firstName} ${i.lastName}`:i.categoryName}));
+                                    choiceInstance.setChoices(items, 'value', 'label', false);
+                                    requestAnimationFrame(()=>{list.scrollTop = currentScroll;});
                                 }
-                            } catch(e){} finally { setTimeout(() => { loading = false; }, 200); }
+                            } catch(e){} finally { setTimeout(()=>loading=false, 200); }
                         }
                     });
                 }
             });
-            return choices;
         }
 
-        // --- YARDIMCI FONKSİYONLAR ---
-        const adminAlert = document.getElementById('admin-alert');
-        // Kullanıcıya başarı/hata mesajı gösterir
-        function showAlert(message, type = 'danger') { 
-            adminAlert.textContent = message; 
-            adminAlert.className = `alert alert-${type}`; 
-            window.scrollTo(0, 0); 
-            setTimeout(() => adminAlert.className = 'alert d-none', 5000); // 5 saniye sonra gizle
-        }
-
-        // Sayfa ilk açıldığında verileri yükle
-        async function loadInitialData() {
-            await loadBooksTable(currentBookPage);
-            // Selectleri doldurma işlemini başlat ve promise'i sakla (Form gönderirken beklemek gerekebilir)
-            selectsLoadingPromise = populateAllSelects();
-            loadAuthorsTable(currentAuthorPage);
-            loadCategoriesTable(currentCategoryPage);
-        }
-
-        // Tüm dropdownları başlangıç verisiyle doldur (Promise.all ile paralel istek)
         async function populateAllSelects() {
             try {
-                const [catRes, authRes] = await Promise.all([Api.getCategories(0, 50), Api.getAuthors(0, 50)]);
-                if (catRes.success) {
-                    const items = (catRes.data.content || []).map(c => ({ value: c.id, label: c.categoryName }));
+                const [cR, aR] = await Promise.all([Api.getCategories(0, 50), Api.getAuthors(0, 50)]);
+                if(cR.success) {
+                    const items = (cR.data.content||[]).map(c=>({value:c.id, label:c.categoryName}));
                     formCategoryChoices.setChoices(items, 'value', 'label', true);
                     filterCategoryChoices.setChoices(items, 'value', 'label', true);
                 }
-                if (authRes.success) {
-                    const items = (authRes.data.content || []).map(a => ({ value: a.id, label: `${a.firstName} ${a.lastName}` }));
+                if(aR.success) {
+                    const items = (aR.data.content||[]).map(a=>({value:a.id, label:`${a.firstName} ${a.lastName}`}));
                     formAuthorChoices.setChoices(items, 'value', 'label', true);
                     filterAuthorChoices.setChoices(items, 'value', 'label', true);
                 }
-            } catch (e) {}
+            } catch(e){}
         }
-        
-        // --- KİTAP YÖNETİMİ FONKSİYONLARI ---
-        
-        /**
-         * Kitapları tablosunu API'den çekip doldurur.
-         * @param {number} page - İstenen sayfa numarası
-         */
-        async function loadBooksTable(page = 0) {
-            const tBody = document.getElementById('books-table-body');
-            const paginationEl = document.getElementById('books-pagination');
-            
+
+        // --- KİTAP İŞLEMLERİ ---
+        async function loadBooksTable(page) {
+            const tbody = document.getElementById('books-table-body');
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center"><div class="spinner-border spinner-border-sm"></div></td></tr>';
             try {
-                // API isteği: Filtre parametreleri (arama, kategori, yazar) ile birlikte
-                const response = await Api.getBooks(page, pageSize, bookSearchTerm, bookFilterCat, bookFilterAuth);
-                tBody.innerHTML = ''; paginationEl.innerHTML = '';
-
-                if (response.success && response.data) {
-                    const books = response.data.content || response.data;
-                    const pageInfo = response.data.totalPages ? response.data : null;
-
-                    if (Array.isArray(books) && books.length > 0) {
-                        // Kitapları döngüye al ve HTML satırlarını oluştur
-                        books.forEach(book => {
-                            const tr = document.createElement('tr');
-                            // Düzenle butonuna basınca kullanmak için verileri data attribute'lara saklıyoruz
-                            const authorIds = book.authors ? JSON.stringify(book.authors) : '[]';
-                            const categoryIds = book.categories ? JSON.stringify(book.categories) : '[]';
-                            
-                            const imgUrl = book.imageUrl || 'https://placehold.co/100x150?text=No+Img';
-                            const imageHtml = `<img src="${imgUrl}" style="width: 40px; height: 60px; object-fit: cover; border-radius: 4px; margin-right: 10px;">`;
-
-                            tr.innerHTML = `
-                                <td>${book.id}</td>
-                                <td><div class="d-flex align-items-center">${imageHtml}<span>${book.title}</span></div></td>
-                                <td>${book.isbn || '-'}</td>
-                                <td><span class="badge ${book.situation === 'AVAILABLE' ? 'bg-success' : 'bg-danger'}">${book.situation}</span></td>
-                                <td>
-                                    <button class="btn btn-sm btn-info btn-upload-image" data-id="${book.id}" data-title="${book.title}" title="Resim"><i class="bi bi-image"></i></button>
-                                    <button class="btn btn-sm btn-warning btn-edit-book" data-id="${book.id}" data-title="${book.title}" data-isbn="${book.isbn}" data-pages="${book.numberOfPages}" data-authors='${authorIds}' data-categories='${categoryIds}' title="Düzenle"><i class="bi bi-pencil"></i></button>
-                                    <button class="btn btn-sm btn-danger btn-delete-book" data-id="${book.id}" title="Sil"><i class="bi bi-trash"></i></button>
+                const res = await Api.getBooks(page, pageSize, bookSearch, bookCat, bookAuth);
+                tbody.innerHTML = '';
+                if(res.success && res.data.content.length > 0) {
+                    res.data.content.forEach(b => {
+                        const img = b.imageUrl || 'https://placehold.co/40x60';
+                        const aIds = JSON.stringify(b.authors||[]);
+                        const cIds = JSON.stringify(b.categories||[]);
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${b.id}</td>
+                                <td><div class="d-flex align-items-center"><img src="${img}" class="me-2"><span>${b.title}</span></div></td>
+                                <td>${b.isbn||'-'}</td>
+                                <td><span class="badge ${b.situation==='AVAILABLE'?'bg-success':'bg-danger'}">${b.situation}</span></td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-info text-white" onclick="openImgModal(${b.id}, '${b.title}')"><i class="bi bi-image"></i></button>
+                                    <button class="btn btn-sm btn-warning" onclick='editBook(${b.id}, "${b.title}", "${b.isbn}", ${b.numberOfPages}, ${aIds}, ${cIds})'><i class="bi bi-pencil"></i></button>
+                                    <button class="btn btn-sm btn-danger" onclick="delBook(${b.id})"><i class="bi bi-trash"></i></button>
                                 </td>
-                            `;
-                            tBody.appendChild(tr);
-                        });
-                    } else { tBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Kayıt bulunamadı.</td></tr>'; }
-
-                    // Sayfalama butonlarını oluştur
-                    if (pageInfo) {
-                        renderPagination('books-pagination', pageInfo, loadBooksTable);
-                        currentBookPage = page;
-                    }
-                } else { tBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Hata.</td></tr>'; }
-                
-                // Dinamik eklenen butonlara event listener ekle
-                document.querySelectorAll('.btn-upload-image').forEach(btn => btn.addEventListener('click', handleOpenUploadModal));
-                document.querySelectorAll('.btn-edit-book').forEach(btn => btn.addEventListener('click', handleEditBook));
-                document.querySelectorAll('.btn-delete-book').forEach(btn => btn.addEventListener('click', handleDeleteBook));
-
-            } catch (error) { console.error(error); showAlert('Kitaplar yüklenirken hata oluştu.'); }
+                            </tr>
+                        `;
+                    });
+                    renderPagination(res.data, 'books-pagination', loadBooksTable);
+                } else tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Kayıt bulunamadı.</td></tr>';
+            } catch(e){ tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Hata.</td></tr>'; }
         }
 
-        /**
-         * Genel Sayfalama (Pagination) Oluşturucu
-         * Tüm tablolar (Kitap, Yazar, Kategori) için ortak kullanılır.
-         */
-        function renderPagination(elId, pageInfo, loadFn, arg=null) {
-            const el = document.getElementById(elId); el.innerHTML = '';
-            if (pageInfo.totalPages <= 1) return; // Tek sayfaysa pagination gösterme
-
-            const createItem = (p, lbl, act, dis) => {
-                const li = document.createElement('li'); li.className = `page-item ${act?'active':''} ${dis?'disabled':''}`;
-                li.innerHTML = `<a class="page-link" href="#">${lbl||p+1}</a>`;
-                if(!act && !dis) li.onclick = (e) => { e.preventDefault(); arg !== null ? loadFn(p, arg) : loadFn(p); };
-                return li;
-            };
-
-            // Önceki Sayfa Butonu
-            el.appendChild(createItem(pageInfo.number-1, '«', false, pageInfo.first));
-            
-            // Sayfa Numaraları (İlk 3, Son 3 ve Aktif sayfa etrafı mantığı)
-            for(let i=0; i<pageInfo.totalPages; i++) {
-                if(i < 3 || i > pageInfo.totalPages - 4 || Math.abs(i - pageInfo.number) < 2) el.appendChild(createItem(i, null, i===pageInfo.number, false));
-                else if(el.lastChild.innerText !== '...') { const li = document.createElement('li'); li.className = 'page-item disabled'; li.innerHTML = '<span class="page-link">...</span>'; el.appendChild(li); }
-            }
-            
-            // Sonraki Sayfa Butonu
-            el.appendChild(createItem(pageInfo.number+1, '»', false, pageInfo.last));
-        }
-
-        // --- FORM İŞLEMLERİ (KİTAP EKLEME/GÜNCELLEME) ---
         async function handleBookFormSubmit(e) {
             e.preventDefault();
-            // Eğer sayfa yeni yüklendiyse ve selectler hala doluyorsa bekle
-            if (document.getElementById('book-authors').disabled) await selectsLoadingPromise;
-            
             const id = document.getElementById('book-id').value;
-            // Form verilerini topla (Choices.js'den gelen array değerleri dahil)
-            const bookData = { 
-                title: document.getElementById('book-title').value, 
-                isbn: document.getElementById('book-isbn').value, 
-                numberOfPages: document.getElementById('book-pages').value, 
-                authors: formAuthorChoices.getValue(true), // Seçilen değerlerin array'ini al
-                categories: formCategoryChoices.getValue(true) 
+            const data = {
+                title: document.getElementById('book-title').value,
+                isbn: document.getElementById('book-isbn').value,
+                numberOfPages: document.getElementById('book-pages').value,
+                authors: formAuthorChoices.getValue(true),
+                categories: formCategoryChoices.getValue(true)
             };
             try {
-                // ID varsa Update, yoksa Create işlemi yap
-                const res = id ? await Api.updateBook(id, bookData) : await Api.createBook(bookData);
-                if (!res.success) throw new Error(res.message);
-                
-                resetBookForm();
-                loadBooksTable(currentBookPage); // Tabloyu yenile
-                showAlert(id ? 'Güncellendi' : 'Eklendi', 'success');
-            } catch (e) { showAlert(`Hata: ${e.message}`); }
+                const res = id ? await Api.updateBook(id, data) : await Api.createBook(data);
+                if(res.success) { showAlert(id?'Güncellendi':'Eklendi'); resetBookForm(); loadBooksTable(0); }
+                else showAlert(res.message, 'danger');
+            } catch(e) { showAlert('Hata', 'danger'); }
         }
 
-        // Formu temizle
-        function resetBookForm() {
-            document.getElementById('book-form').reset();
-            document.getElementById('book-id').value = '';
-            formAuthorChoices.removeActiveItems();
-            formCategoryChoices.removeActiveItems();
-        }
-
-        /**
-         * Kitap Düzenleme Butonuna Tıklanınca
-         * Tablodaki verileri form alanlarına doldurur.
-         */
-        async function handleEditBook(e) {
-            const { id, title, isbn, pages, authors, categories } = e.currentTarget.dataset;
-            // Inputları doldur
+        window.editBook = async (id, title, isbn, pages, aIds, cIds) => {
             document.getElementById('book-id').value = id;
             document.getElementById('book-title').value = title;
             document.getElementById('book-isbn').value = isbn;
             document.getElementById('book-pages').value = pages;
             
-            // Choices.js alanlarını temizle
-            const aIds = JSON.parse(authors); formAuthorChoices.removeActiveItems();
-            const cIds = JSON.parse(categories); formCategoryChoices.removeActiveItems();
-
-            // Seçili yazar ve kategorilerin detaylarını API'den çek (İsimlerini göstermek için)
-            const [aDetails, cDetails] = await Promise.all([
-                Promise.all(aIds.map(id => Api.getAuthorById(id))),
-                Promise.all(cIds.map(id => Api.getCategoryById(id)))
-            ]);
-
-            // Choices.js'e seçili olarak set et
-            const aItems = aDetails.map(r => r.success ? { value: r.data.id, label: `${r.data.firstName} ${r.data.lastName}`, selected: true } : null).filter(Boolean);
-            const cItems = cDetails.map(r => r.success ? { value: r.data.id, label: r.data.categoryName, selected: true } : null).filter(Boolean);
+            formAuthorChoices.removeActiveItems(); formCategoryChoices.removeActiveItems();
             
-            formAuthorChoices.setChoices(aItems, 'value', 'label', false); 
-            formCategoryChoices.setChoices(cItems, 'value', 'label', false);
+            // Seçili detayları API'den çekip set et
+            try {
+                const [aD, cD] = await Promise.all([
+                    Promise.all(aIds.map(aid => Api.getAuthorById(aid))),
+                    Promise.all(cIds.map(cid => Api.getCategoryById(cid)))
+                ]);
+                const aItems = aD.map(r=>r.success?{value:r.data.id, label:`${r.data.firstName} ${r.data.lastName}`, selected:true}:null).filter(Boolean);
+                const cItems = cD.map(r=>r.success?{value:r.data.id, label:r.data.categoryName, selected:true}:null).filter(Boolean);
+                formAuthorChoices.setChoices(aItems, 'value', 'label', false);
+                formCategoryChoices.setChoices(cItems, 'value', 'label', false);
+            } catch(e){}
+            
+            window.scrollTo(0,0);
+        };
 
-            window.scrollTo(0, 0); // Sayfanın başına git (Formu görmek için)
-        }
+        window.delBook = async (id) => { if(confirm('Sil?')) { await Api.deleteBook(id); loadBooksTable(0); } };
+        function resetBookForm() { document.getElementById('book-form').reset(); document.getElementById('book-id').value=''; formAuthorChoices.removeActiveItems(); formCategoryChoices.removeActiveItems(); }
 
-        // Kitap Silme İşlemi
-        async function handleDeleteBook(e) { if(confirm('Silinsin mi?')) { await Api.deleteBook(e.currentTarget.dataset.id); loadBooksTable(currentBookPage); showAlert('Silindi', 'success'); }}
-        
-        // --- YAZAR YÖNETİMİ ---
-        async function loadAuthorsTable(p=0, s="") { 
-            // Arama kutusundan gelen değer varsa onu kullan
-            if(s==="" && document.getElementById('search-authors').value) s = document.getElementById('search-authors').value;
-            const res = await Api.getAuthors(p, pageSize, s);
-            const tbody = document.getElementById('authors-table-body'); tbody.innerHTML='';
-            if(res.success) {
-                (res.data.content||[]).forEach(a => { tbody.innerHTML+=`<tr><td>${a.id}</td><td>${a.firstName}</td><td>${a.lastName}</td><td><button class="btn btn-sm btn-warning btn-edit-author" data-id="${a.id}" data-first="${a.firstName}" data-last="${a.lastName}"><i class="bi bi-pencil"></i></button> <button class="btn btn-sm btn-danger btn-delete-author" data-id="${a.id}"><i class="bi bi-trash"></i></button></td></tr>`; });
-                renderPagination('authors-pagination', res.data, loadAuthorsTable, s);
-                document.querySelectorAll('.btn-edit-author').forEach(btn => btn.onclick = handleEditAuthor);
-                document.querySelectorAll('.btn-delete-author').forEach(btn => btn.onclick = handleDeleteAuthor);
+        // --- YAZAR & KATEGORİ İŞLEMLERİ ---
+        async function loadAuthorsTable(p) {
+            const tbody=document.getElementById('authors-table-body'); tbody.innerHTML='';
+            const res=await Api.getAuthors(p, pageSize, authorSearch);
+            if(res.success){
+                (res.data.content||[]).forEach(a=>{
+                    tbody.innerHTML+=`<tr><td>${a.id}</td><td>${a.firstName} ${a.lastName}</td><td class="text-end"><button class="btn btn-sm btn-warning me-1" onclick="editAuth(${a.id}, '${a.firstName}', '${a.lastName}')"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-danger" onclick="delAuth(${a.id})"><i class="bi bi-trash"></i></button></td></tr>`;
+                });
+                renderPagination(res.data, 'authors-pagination', loadAuthorsTable);
             }
         }
-
-        // --- KATEGORİ YÖNETİMİ ---
-        async function loadCategoriesTable(p=0, s="") {
-             if(s==="" && document.getElementById('search-categories').value) s = document.getElementById('search-categories').value;
-             const res = await Api.getCategories(p, pageSize, s);
-             const tbody = document.getElementById('categories-table-body'); tbody.innerHTML='';
-             if(res.success) {
-                (res.data.content||[]).forEach(c => { tbody.innerHTML+=`<tr><td>${c.id}</td><td>${c.categoryName}</td><td><button class="btn btn-sm btn-warning btn-edit-category" data-id="${c.id}" data-name="${c.categoryName}"><i class="bi bi-pencil"></i></button> <button class="btn btn-sm btn-danger btn-delete-category" data-id="${c.id}"><i class="bi bi-trash"></i></button></td></tr>`; });
-                renderPagination('categories-pagination', res.data, loadCategoriesTable, s);
-                document.querySelectorAll('.btn-edit-category').forEach(btn => btn.onclick = handleEditCategory);
-                document.querySelectorAll('.btn-delete-category').forEach(btn => btn.onclick = handleDeleteCategory);
-             }
-        }
-
-        // Yazar Form Submit
-        async function handleAuthorFormSubmit(e) { 
-            e.preventDefault(); 
-            const id = document.getElementById('author-id').value;
-            const data = { firstName: document.getElementById('author-firstName').value, lastName: document.getElementById('author-lastName').value };
-            try { const res = id ? await Api.updateAuthor(id, data) : await Api.createAuthor(data); if(res.success) { document.getElementById('author-form').reset(); document.getElementById('author-id').value = ''; loadAuthorsTable(currentAuthorPage); showAlert('Başarılı','success'); } } catch(e){ showAlert(e.message); }
-        }
-        // Yazar Düzenle
-        function handleEditAuthor(e) { const d=e.currentTarget.dataset; document.getElementById('author-id').value=d.id; document.getElementById('author-firstName').value=d.first; document.getElementById('author-lastName').value=d.last; }
-        // Yazar Sil
-        async function handleDeleteAuthor(e) { if(confirm('Sil?')) { await Api.deleteAuthor(e.currentTarget.dataset.id); loadAuthorsTable(currentAuthorPage); } }
-
-        // Kategori Form Submit
-        async function handleCategoryFormSubmit(e) {
+        async function handleAuthorFormSubmit(e){
             e.preventDefault();
-            const id = document.getElementById('category-id').value;
-            const data = { categoryName: document.getElementById('category-name').value };
-            try { const res = id ? await Api.updateCategory(id, data) : await Api.createCategory(data); if(res.success) { document.getElementById('category-form').reset(); document.getElementById('category-id').value = ''; loadCategoriesTable(currentCategoryPage); showAlert('Başarılı','success'); } } catch(e){ showAlert(e.message); }
+            const id=document.getElementById('author-id').value;
+            const d={firstName:document.getElementById('author-firstName').value, lastName:document.getElementById('author-lastName').value};
+            const r=id?await Api.updateAuthor(id,d):await Api.createAuthor(d);
+            if(r.success){showAlert('Başarılı');document.getElementById('author-form').reset();document.getElementById('author-id').value='';loadAuthorsTable(0);}
         }
-        // Kategori Düzenle
-        function handleEditCategory(e) { const d=e.currentTarget.dataset; document.getElementById('category-id').value=d.id; document.getElementById('category-name').value=d.name; }
-        // Kategori Sil
-        async function handleDeleteCategory(e) { if(confirm('Sil?')) { await Api.deleteCategory(e.currentTarget.dataset.id); loadCategoriesTable(currentCategoryPage); } }
+        window.editAuth=(id,f,l)=>{document.getElementById('author-id').value=id;document.getElementById('author-firstName').value=f;document.getElementById('author-lastName').value=l;};
+        window.delAuth=async(id)=>{if(confirm('Sil?')){await Api.deleteAuthor(id);loadAuthorsTable(0);}};
 
-        // --- RESİM YÜKLEME İŞLEMLERİ ---
-        function handleOpenUploadModal(e) { 
-            document.getElementById('imageUploadModalLabel').textContent = `Resim Yükle: ${e.currentTarget.dataset.title}`; 
-            document.getElementById('upload-book-id').value = e.currentTarget.dataset.id; 
-            document.getElementById('image-upload-form').reset(); 
-            imageUploadModal.show(); 
+        async function loadCategoriesTable(p) {
+            const tbody=document.getElementById('categories-table-body'); tbody.innerHTML='';
+            const res=await Api.getCategories(p, pageSize, categorySearch);
+            if(res.success){
+                (res.data.content||[]).forEach(c=>{
+                    tbody.innerHTML+=`<tr><td>${c.id}</td><td>${c.categoryName}</td><td class="text-end"><button class="btn btn-sm btn-warning me-1" onclick="editCat(${c.id}, '${c.categoryName}')"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-danger" onclick="delCat(${c.id})"><i class="bi bi-trash"></i></button></td></tr>`;
+                });
+                renderPagination(res.data, 'categories-pagination', loadCategoriesTable);
+            }
+        }
+        async function handleCategoryFormSubmit(e){
+            e.preventDefault();
+            const id=document.getElementById('category-id').value;
+            const d={categoryName:document.getElementById('category-name').value};
+            const r=id?await Api.updateCategory(id,d):await Api.createCategory(d);
+            if(r.success){showAlert('Başarılı');document.getElementById('category-form').reset();document.getElementById('category-id').value='';loadCategoriesTable(0);}
+        }
+        window.editCat=(id,n)=>{document.getElementById('category-id').value=id;document.getElementById('category-name').value=n;};
+        window.delCat=async(id)=>{if(confirm('Sil?')){await Api.deleteCategory(id);loadCategoriesTable(0);}};
+
+        // --- RESİM UPLOAD ---
+        window.openImgModal = (id, title) => {
+            document.getElementById('imageUploadModalLabel').innerText = `Resim: ${title}`;
+            document.getElementById('upload-book-id').value = id;
+            document.getElementById('image-upload-form').reset();
+            imageUploadModal.show();
+        };
+        async function handleImageUploadSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('upload-book-id').value;
+            const file = document.getElementById('book-image-file').files[0];
+            const fd = new FormData(); fd.append('file', file);
+            try {
+                const res = await Api.uploadBookImage(id, fd);
+                if(res.success) { showAlert('Resim yüklendi'); imageUploadModal.hide(); loadBooksTable(0); }
+                else showAlert(res.message, 'danger');
+            } catch(e) { showAlert('Hata', 'danger'); }
         }
 
-        async function handleImageUploadSubmit(e) { 
-            e.preventDefault(); 
-            const bookId = document.getElementById('upload-book-id').value; 
-            const file = document.getElementById('book-image-file').files[0]; 
-            if(!file) return; 
+        // --- PAGINATION ---
+        // Global bir fonksiyon saklayıcı obje oluşturuyoruz
+        window.pageFunctions = {};
+
+        function renderPagination(info, elId, fn) {
+            const el = document.getElementById(elId);
+            el.innerHTML = '';
             
-            // Dosyayı göndermek için FormData kullanıyoruz
-            const formData = new FormData(); 
-            formData.append('file', file); 
+            // Test etmek için bu satırı geçici olarak yorum satırı yapabilirsin:
+            if(info.totalPages <= 1) return;
+
+            // Fonksiyonu ID'ye özel olarak sakla
+            window.pageFunctions[elId] = fn;
             
-            document.getElementById('upload-button').disabled = true; // Çift tıklamayı önle
-            try { 
-                const res = await Api.uploadBookImage(bookId, formData); 
-                if(res.success) { 
-                    showAlert('Resim yüklendi.', 'success'); 
-                    imageUploadModal.hide(); 
-                    loadBooksTable(currentBookPage); // Resmi görmek için tabloyu yenile
-                } else { showAlert(`Hata: ${res.message}`, 'danger'); } 
-            } catch(error) { showAlert(`Hata: ${error.message}`, 'danger'); } 
-            finally { document.getElementById('upload-button').disabled = false; } 
-        } 
+            const btn = (label, page, isActive, isDisabled) => `
+                <li class="page-item ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}">
+                    <button class="page-link shadow-none" 
+                        onclick="window.pageFunctions['${elId}'](${page})">
+                        ${label}
+                    </button>
+                </li>`;
+
+            // Önceki Sayfa
+            el.innerHTML += btn('<i class="bi bi-chevron-left"></i>', info.number - 1, false, info.first);
+
+            // Sayfa Numaraları (Basit Mantık)
+            // Çok fazla sayfa varsa araya ... koyan mantığı koruyarak:
+            for (let i = 0; i < info.totalPages; i++) {
+                // İlk sayfa, son sayfa veya mevcut sayfanın bir öncesi/sonrası ise göster
+                if (i === 0 || i === info.totalPages - 1 || Math.abs(i - info.number) <= 1) {
+                    el.innerHTML += btn(i + 1, i, i === info.number, false);
+                } else if (
+                    (i === 1 && info.number > 2) || 
+                    (i === info.totalPages - 2 && info.number < info.totalPages - 3)
+                ) {
+                    // Tekrar eden ... oluşmaması için kontrol
+                    if (!el.innerHTML.endsWith('...</li>')) {
+                        el.innerHTML += '<li class="page-item disabled"><span class="page-link border-0">...</span></li>';
+                    }
+                }
+            }
+
+            // Sonraki Sayfa
+            el.innerHTML += btn('<i class="bi bi-chevron-right"></i>', info.number + 1, false, info.last);
+        }
     </script>
 </body>
 </html>
