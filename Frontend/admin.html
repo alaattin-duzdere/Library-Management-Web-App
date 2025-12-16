@@ -515,7 +515,37 @@
             window.scrollTo(0,0);
         };
 
-        window.delBook = async (id) => { if(confirm('Sil?')) { await Api.deleteBook(id); loadBooksTable(0); } };
+        window.delBook = async (id) => {
+            if (!confirm('Bu kitabı silmek istediğinize emin misiniz?')) return;
+
+            try {
+                const res = await Api.deleteBook(id);
+
+                if (res && res.success) {
+                    showAlert('Kitap başarıyla silindi.');
+                    loadBooksTable(0);
+                } else {
+                    // HATA BURADA YAKALANIYOR
+                    console.log("Kitap Silme Cevabı:", res);
+
+                    const msg = res.message || '';
+
+                    if (
+                        res.httpStatus === 409 || 
+                        res.code === 'E409-DATA' || 
+                        msg.includes("integrity violation") || 
+                        msg.includes("foreign key")
+                    ) {
+                        showAlert('Bu kitap şu an ödünçte veya işlem geçmişi var, silinemez. Önce iade almalısınız.', 'warning');
+                    } else {
+                        showAlert('Hata: ' + (msg || 'İşlem başarısız'), 'danger');
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+                showAlert('Sunucu hatası oluştu.', 'danger');
+            }
+        };
         function resetBookForm() { document.getElementById('book-form').reset(); document.getElementById('book-id').value=''; formAuthorChoices.removeActiveItems(); formCategoryChoices.removeActiveItems(); }
 
         // --- YAZAR & KATEGORİ İŞLEMLERİ ---
@@ -537,7 +567,31 @@
             if(r.success){showAlert('Başarılı');document.getElementById('author-form').reset();document.getElementById('author-id').value='';loadAuthorsTable(0);}
         }
         window.editAuth=(id,f,l)=>{document.getElementById('author-id').value=id;document.getElementById('author-firstName').value=f;document.getElementById('author-lastName').value=l;};
-        window.delAuth=async(id)=>{if(confirm('Sil?')){await Api.deleteAuthor(id);loadAuthorsTable(0);}};
+        window.delAuth = async (id) => {
+            if (!confirm('Bu yazarı silmek istediğinize emin misiniz?')) return;
+
+            try {
+                const res = await Api.deleteAuthor(id);
+                
+                if (res.success) {
+                    showAlert('Yazar başarıyla silindi.');
+                    loadAuthorsTable(0);
+                } else {
+                    console.log(res);
+                    // Hata Yönetimi
+                    if (res.httpStatus === 409) {
+                        // Backend'den gelen 409 hatası
+                        showAlert('Bu yazara ait kitaplar bulunduğu için silinemez! Önce ilgili kitapları silin veya düzenleyin.', 'warning');
+                    } else {
+                        // Diğer hatalar
+                        showAlert(res.message || 'Silme işlemi başarısız.', 'danger');
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+                showAlert('Sunucu ile iletişim hatası.', 'danger');
+            }
+        };
 
         async function loadCategoriesTable(p) {
             const tbody=document.getElementById('categories-table-body'); tbody.innerHTML='';
@@ -557,7 +611,30 @@
             if(r.success){showAlert('Başarılı');document.getElementById('category-form').reset();document.getElementById('category-id').value='';loadCategoriesTable(0);}
         }
         window.editCat=(id,n)=>{document.getElementById('category-id').value=id;document.getElementById('category-name').value=n;};
-        window.delCat=async(id)=>{if(confirm('Sil?')){await Api.deleteCategory(id);loadCategoriesTable(0);}};
+        window.delCat = async (id) => {
+            if (!confirm('Bu kategoriyi silmek istediğinize emin misiniz?')) return;
+
+            try {
+                const res = await Api.deleteCategory(id);
+                
+                if (res.success) {
+                    showAlert('Kategori başarıyla silindi.');
+                    loadCategoriesTable(0);
+                } else {
+                    // Hata Yönetimi
+                    if (res.httpStatus === 409 || res.code === 'E409-DATA') {
+                        // Backend'den gelen 409 hatası
+                        showAlert('Bu kategoriye tanımlı kitaplar olduğu için silinemez! Önce ilgili kitapları kategoriden çıkarın.', 'warning');
+                    } else {
+                        // Diğer hatalar
+                        showAlert(res.message || 'Silme işlemi başarısız.', 'danger');
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+                showAlert('Sunucu ile iletişim hatası.', 'danger');
+            }
+        };
 
         // --- RESİM UPLOAD ---
         window.openImgModal = (id, title) => {

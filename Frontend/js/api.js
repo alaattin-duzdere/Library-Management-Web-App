@@ -51,15 +51,11 @@ const Api = {
 
             const data = await response.json(); 
 
-            if (!response.ok) {
-                throw new Error(data.message || "Bilinmeyen bir sunucu hatası oluştu.");
-            }
-
             return data; 
 
         } catch (error) {
             console.error(`API Hatası (${endpoint}):`, error);
-            return { success: false, message: error.message };
+            return { success: false, message: error.message};
         }
     },
 
