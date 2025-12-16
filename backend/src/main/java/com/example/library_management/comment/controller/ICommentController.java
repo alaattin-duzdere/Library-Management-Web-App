@@ -13,7 +13,7 @@ public interface ICommentController {
 
     ResponseEntity<CustomResponseBody<Page<DtoCommentResponse>>> getCommentByBookId(Pageable pageable,Long bookId);
 
-    ResponseEntity<CustomResponseBody<Page<DtoCommentResponse>>> getCommentByUserId(Pageable pageable, Long userId);
+    ResponseEntity<CustomResponseBody<Page<DtoCommentResponse>>> getMyComments(Pageable pageable);
 
     ResponseEntity<CustomResponseBody<DtoCommentResponse>> updateComment(Long commentId, DtoUpdateCommentRequest newContent);
 

@@ -13,6 +13,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -41,12 +43,11 @@ public class CommentControllerImpl implements ICommentController{
         return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
     }
 
-    @GetMapping("/user/{userId}")
+    @GetMapping("/my-comments")
     @Override
-    public ResponseEntity<CustomResponseBody<Page<DtoCommentResponse>>> getCommentByUserId(
-            @PageableDefault(page = 0, size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable,
-            @PathVariable Long userId) {
-        CustomResponseBody<Page<DtoCommentResponse>> body = CustomResponseBody.ok(commentService.getCommentByUserId(pageable,userId), "Comment get successfully");
+    public ResponseEntity<CustomResponseBody<Page<DtoCommentResponse>>> getMyComments(
+            @PageableDefault(page = 0, size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        CustomResponseBody<Page<DtoCommentResponse>> body = CustomResponseBody.ok(commentService.getCommentByUserId(pageable,userIdFromSecurityContext()), "Comment get successfully");
         return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
     }
 
@@ -64,5 +65,10 @@ public class CommentControllerImpl implements ICommentController{
     public ResponseEntity<CustomResponseBody<DtoCommentResponse>> deleteComment(@PathVariable Long commentId) {
         CustomResponseBody<DtoCommentResponse> body = CustomResponseBody.ok(commentService.deleteComment(commentId), "Comment deleted successfully");
         return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
+    }
+
+    private Long userIdFromSecurityContext() {
+        SecurityContext securityContext = SecurityContextHolder.getContext();
+        return Long.parseLong(securityContext.getAuthentication().getName());
     }
 }

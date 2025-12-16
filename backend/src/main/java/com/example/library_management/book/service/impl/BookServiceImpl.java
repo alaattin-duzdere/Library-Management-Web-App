@@ -68,7 +68,7 @@ public class BookServiceImpl implements IBookService {
         return book;
     }
 
-    private DtoBookResponse createDtoFromBook(Book book) {
+    public DtoBookResponse createDtoFromBook(Book book) {
         DtoBookResponse dtoBookResponse = new DtoBookResponse();
         BeanUtils.copyProperties(book, dtoBookResponse);
 

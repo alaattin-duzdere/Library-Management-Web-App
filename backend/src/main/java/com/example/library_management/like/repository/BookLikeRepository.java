@@ -1,6 +1,8 @@
 package com.example.library_management.like.repository;
 
 import com.example.library_management.like.model.BookLike;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -12,4 +14,6 @@ public interface BookLikeRepository extends JpaRepository<BookLike, Long> {
     long countByBookId(Long bookId); // Count likes for a specific book
 
     void deleteByUserIdAndBookId(Long userId, Long bookId); // Unlike a book
+
+    Page<BookLike> findByUserId(Long userId, Pageable pageable);
 }
