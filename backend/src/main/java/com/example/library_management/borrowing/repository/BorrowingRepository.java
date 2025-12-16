@@ -3,6 +3,7 @@ package com.example.library_management.borrowing.repository;
 import com.example.library_management.borrowing.model.Borrowing;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -16,4 +17,8 @@ public interface BorrowingRepository extends JpaRepository<Borrowing, Long> {
 
     @Query("SELECT b FROM Borrowing b WHERE b.returnDate IS NULL AND b.lastReturnDate < CURRENT_TIMESTAMP")
     List<Borrowing> findOverdueAndNotReturned();
+
+    @Query("SELECT b FROM Borrowing b WHERE b.book.id = :bookId AND b.returnDate IS NULL")
+    Optional<Borrowing> findActiveByBookId(@Param("bookId") Long bookId);
+
 }

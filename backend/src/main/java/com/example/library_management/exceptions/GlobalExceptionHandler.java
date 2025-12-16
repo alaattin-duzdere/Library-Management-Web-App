@@ -5,9 +5,9 @@ import com.example.library_management.api.CustomResponseBody;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureException;
-import jogamp.common.util.locks.SingletonInstanceServerSocket;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +21,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
-import java.rmi.ServerException;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -129,8 +128,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<CustomResponseBody<?>> handleAccessDeniedForMethodSecurity(){
-        CustomResponseBody<Object> body = CustomResponseBody.failure(ApiStatus.ERROR_FORBIDDEN, "Acces denied");
+        CustomResponseBody<Object> body = CustomResponseBody.failure(ApiStatus.ERROR_FORBIDDEN, "Access denied");
         return new ResponseEntity<>(body,HttpStatus.valueOf(body.getHttpStatus()));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<CustomResponseBody<?>> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
+        CustomResponseBody<Object> body = CustomResponseBody.failure(ApiStatus.ERROR_DATA_INTEGRITY_VIOLATION,"Data integrity violation. Data may be used by another entity.");
+        return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
     }
 
     /**

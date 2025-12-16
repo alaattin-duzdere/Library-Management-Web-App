@@ -4,12 +4,16 @@ import com.example.library_management.book.model.Book;
 import com.example.library_management.user.model.User;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.util.Date;
 
 @Entity
 @Data
 @Table(name = "comments")
+@SQLDelete(sql = "UPDATE \"library-management\".comments SET deleted = true WHERE id = ?") // Soft delete implementation
+@SQLRestriction("deleted = false") // Ensures that only non-deleted records are fetched
 public class Comment {
 
     @Id
@@ -29,4 +33,7 @@ public class Comment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @Column(name = "deleted")
+    private boolean deleted = false;
 }

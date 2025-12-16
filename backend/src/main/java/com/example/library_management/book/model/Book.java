@@ -10,6 +10,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -20,6 +22,8 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
+@SQLDelete(sql = "UPDATE \"library-management\".book SET situation = 'DELETED' WHERE id = ?") // 1. Silme işlemi gerçekleştiğinde kaydı fiziksel olarak silmek yerine durumunu 'DELETED' olarak günceller
+@SQLRestriction("situation <> 'DELETED'")  // 2. Tüm sorgularda silinmiş kayıtları hariç tutar
 public class Book extends BaseEntity {
 
     @Column(name="title")

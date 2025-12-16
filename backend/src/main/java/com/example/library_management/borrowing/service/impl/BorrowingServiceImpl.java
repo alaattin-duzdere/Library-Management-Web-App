@@ -63,8 +63,15 @@ public class BorrowingServiceImpl implements IBorrowingService {
 
         BeanUtils.copyProperties(borrowing, dto);
         dto.setBorrowingId(borrowing.getId());
-        dto.setBookId(borrowing.getBook().getId());
         dto.setUserId(borrowing.getUser().getId());
+        if (borrowing.getBook()==null){
+            dto.setBookId(null);
+            dto.setBookTitle("Book has been deleted");
+        }
+        else {
+            dto.setBookId(borrowing.getBook().getId());
+            dto.setBookTitle(borrowing.getBook().getTitle());
+        }
 
         return dto;
     }

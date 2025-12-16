@@ -7,6 +7,7 @@ import com.example.library_management.book.dto.DtoBookResponse;
 import com.example.library_management.book.model.Book;
 import com.example.library_management.book.repository.BookRepository;
 import com.example.library_management.book.service.IBookService;
+import com.example.library_management.borrowing.repository.BorrowingRepository;
 import com.example.library_management.category.model.Category;
 import com.example.library_management.category.repository.CategoryRepository;
 import com.example.library_management.common.util.ImageUploadService;
@@ -37,11 +38,14 @@ public class BookServiceImpl implements IBookService {
 
     private final ImageUploadService imageUploadService;
 
-    public BookServiceImpl(BookRepository bookRepository, AuthorRepository authorRepository, CategoryRepository categoryRepository, ImageUploadService imageUploadService) {
+    private final BorrowingRepository borrowingRepository;
+
+    public BookServiceImpl(BookRepository bookRepository, AuthorRepository authorRepository, CategoryRepository categoryRepository, ImageUploadService imageUploadService, BorrowingRepository borrowingRepository) {
         this.bookRepository = bookRepository;
         this.authorRepository = authorRepository;
         this.categoryRepository = categoryRepository;
         this.imageUploadService = imageUploadService;
+        this.borrowingRepository = borrowingRepository;
     }
 
     @Value("${app.base-url}")
@@ -162,6 +166,9 @@ public class BookServiceImpl implements IBookService {
         if (!bookRepository.existsById(bookId)){
             throw new ResourceNotFoundException("Book", "id", bookId);
         }
+
+        borrowingRepository.findActiveByBookId(bookId).ifPresent( borrowing -> {throw new ConflictException("Cannot delete a book that is currently borrowed.");});
+
         bookRepository.deleteById(bookId);
         return true;
     }
