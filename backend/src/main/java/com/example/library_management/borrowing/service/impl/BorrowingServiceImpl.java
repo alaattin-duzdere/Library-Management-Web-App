@@ -2,6 +2,7 @@ package com.example.library_management.borrowing.service.impl;
 
 import com.example.library_management.book.model.Book;
 import com.example.library_management.book.repository.BookRepository;
+import com.example.library_management.borrowing.mapper.BorrowingMapper;
 import com.example.library_management.borrowing.repository.BorrowingSpecification;
 import com.example.library_management.borrowing.dto.DtoBorrowResponse;
 import com.example.library_management.borrowing.model.Borrowing;
@@ -16,7 +17,6 @@ import com.example.library_management.penalties.model.StateOfPenalty;
 import com.example.library_management.penalties.repository.PenaltyRepository;
 import com.example.library_management.user.model.User;
 import com.example.library_management.user.repository.UserRepository;
-import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,40 +44,22 @@ public class BorrowingServiceImpl implements IBorrowingService {
 
     private final BorrowingRepository borrowingRepository;
 
+    private final BorrowingMapper borrowingMapper;
+
     private final BookRepository bookRepository;
 
     private final UserRepository userRepository;
 
     private final PenaltyRepository penaltyRepository;
 
-    public BorrowingServiceImpl(BorrowingRepository borrowingRepository, BookRepository bookRepository, UserRepository userRepository, PenaltyRepository penaltyRepository) {
+    public BorrowingServiceImpl(BorrowingRepository borrowingRepository, BorrowingMapper borrowingMapper, BookRepository bookRepository, UserRepository userRepository, PenaltyRepository penaltyRepository) {
         this.borrowingRepository = borrowingRepository;
+        this.borrowingMapper = borrowingMapper;
         this.bookRepository = bookRepository;
         this.userRepository = userRepository;
         this.penaltyRepository = penaltyRepository;
     }
 
-    private DtoBorrowResponse borrowingToDtoBorrowResponse(Borrowing borrowing) {
-        if (borrowing == null) {
-            return null;
-        }
-        DtoBorrowResponse dto = new DtoBorrowResponse();
-
-        BeanUtils.copyProperties(borrowing, dto);
-        dto.setBorrowingId(borrowing.getId());
-        dto.setUserId(borrowing.getUser().getId());
-        dto.setUserName(borrowing.getUser().getUsername());
-        if (borrowing.getBook()==null){
-            dto.setBookId(null);
-            dto.setBookTitle("Book has been deleted");
-        }
-        else {
-            dto.setBookId(borrowing.getBook().getId());
-            dto.setBookTitle(borrowing.getBook().getTitle());
-        }
-
-        return dto;
-    }
     @Override
     public DtoBorrowResponse borrowBook(Long bookId) {
         Long userId = SecurityUtils.getCurrentUserId();
@@ -100,13 +82,13 @@ public class BorrowingServiceImpl implements IBorrowingService {
         book.setSituation(Situation.BORROWED);
         bookRepository.save(book);
 
-        return borrowingToDtoBorrowResponse(borrowingRepository.save(borrowing));
+        return borrowingMapper.borrowingToDtoBorrowResponse(borrowingRepository.save(borrowing));
     }
 
     @Override
     public Page<DtoBorrowResponse> getBorrowings(Pageable pageable, Long borrowingId, Long userId, Long bookId) {
         Specification<Borrowing> spec = BorrowingSpecification.findByCriteria(borrowingId, userId, bookId);
-        return borrowingRepository.findAll(spec, pageable).map(this::borrowingToDtoBorrowResponse);
+        return borrowingRepository.findAll(spec, pageable).map(borrowingMapper::borrowingToDtoBorrowResponse);
     }
 
     @Override
@@ -125,7 +107,7 @@ public class BorrowingServiceImpl implements IBorrowingService {
         book.setSituation(Situation.AVAILABLE);
         bookRepository.save(book);
 
-        DtoBorrowResponse dtoBorrowResponse = borrowingToDtoBorrowResponse(borrowing);
+        DtoBorrowResponse dtoBorrowResponse = borrowingMapper.borrowingToDtoBorrowResponse(borrowing);
 
         if (borrowing.getReturnDate().after(borrowing.getLastReturnDate())){
             dtoBorrowResponse.setPenaltyCost(createPenalty(borrowing).getAmount());

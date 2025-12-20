@@ -5,6 +5,7 @@ import com.example.library_management.borrowing.repository.BorrowingRepository;
 import com.example.library_management.exceptions.client.ConflictException;
 import com.example.library_management.exceptions.client.ResourceNotFoundException;
 import com.example.library_management.exceptions.server.EmailServiceException;
+import com.example.library_management.penalties.mapper.PenaltyMapper;
 import com.example.library_management.penalties.repository.PenaltySpecification;
 import com.example.library_management.penalties.dto.DtoPenaltyResponse;
 import com.example.library_management.penalties.model.Penalty;
@@ -30,27 +31,23 @@ public class PenaltyServiceImpl implements IPenaltyService {
 
     private final PenaltyRepository penaltyRepository;
 
+    private final PenaltyMapper penaltyMapper;
+
     private final BorrowingRepository borrowingRepository;
 
     private final IReminderStrategy reminderStrategy;
 
-    public PenaltyServiceImpl(PenaltyRepository penaltyRepository, BorrowingRepository borrowingRepository,@Qualifier("emailReminder") IReminderStrategy reminderStrategy) {
+    public PenaltyServiceImpl(PenaltyRepository penaltyRepository, PenaltyMapper penaltyMapper, BorrowingRepository borrowingRepository, @Qualifier("emailReminder") IReminderStrategy reminderStrategy) {
         this.penaltyRepository = penaltyRepository;
+        this.penaltyMapper = penaltyMapper;
         this.borrowingRepository = borrowingRepository;
         this.reminderStrategy = reminderStrategy;
-    }
-
-    private DtoPenaltyResponse penaltyToDtoPenaltyResponse(Penalty penalty){
-        DtoPenaltyResponse dtoPenaltyResponse = new DtoPenaltyResponse();
-        BeanUtils.copyProperties(penalty, dtoPenaltyResponse);
-        dtoPenaltyResponse.setPenaltyId(penalty.getId());
-        return dtoPenaltyResponse;
     }
 
     @Override
     public Page<DtoPenaltyResponse> getPenalties(Pageable pageable, Long userId, StateOfPenalty state) {
         Specification<Penalty> spec = PenaltySpecification.findByCriteria(userId, state);
-        return penaltyRepository.findAll(spec, pageable).map(this::penaltyToDtoPenaltyResponse);
+        return penaltyRepository.findAll(spec, pageable).map(penaltyMapper::penaltyToDtoPenaltyResponse);
     }
 
     @Override
@@ -66,7 +63,7 @@ public class PenaltyServiceImpl implements IPenaltyService {
         penalty.setStateOfPenalty(StateOfPenalty.PAID);
         penaltyRepository.save(penalty);
 
-        return penaltyToDtoPenaltyResponse(penalty);
+        return penaltyMapper.penaltyToDtoPenaltyResponse(penalty);
     }
 
     @Scheduled(cron = "0 0 2 * * ?") // 02:00

@@ -1,6 +1,7 @@
 package com.example.library_management.like.service.impl;
 
 import com.example.library_management.book.dto.DtoBookResponse;
+import com.example.library_management.book.mapper.BookMapper;
 import com.example.library_management.book.model.Book;
 import com.example.library_management.book.repository.BookRepository;
 import com.example.library_management.book.service.impl.BookServiceImpl;
@@ -24,13 +25,13 @@ public class BookLikeServiceImpl implements IBookLikeService {
 
     private final BookRepository bookRepository;
 
-    private final BookServiceImpl bookService;
+    private final BookMapper bookMapper;
 
-    public BookLikeServiceImpl(BookLikeRepository bookLikeRepository, UserRepository userRepository, BookRepository bookRepository, BookServiceImpl bookService) {
+    public BookLikeServiceImpl(BookLikeRepository bookLikeRepository, UserRepository userRepository, BookRepository bookRepository, BookServiceImpl bookService, BookMapper bookMapper) {
         this.bookLikeRepository = bookLikeRepository;
         this.userRepository = userRepository;
         this.bookRepository = bookRepository;
-        this.bookService = bookService;
+        this.bookMapper = bookMapper;
     }
 
     @Transactional
@@ -65,7 +66,7 @@ public class BookLikeServiceImpl implements IBookLikeService {
         }
 
         Page<BookLike> bookLikes = bookLikeRepository.findByUserId(userId,pageable);
-        return bookLikes.map(bookLike -> bookService.createDtoFromBook(bookLike.getBook()));
+        return bookLikes.map(bookLike -> bookMapper.createDtoFromBook(bookLike.getBook()));
     }
 
     @Override

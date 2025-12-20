@@ -2,6 +2,7 @@ package com.example.library_management.category.service.impl;
 
 import com.example.library_management.category.dto.DtoCategoryRequest;
 import com.example.library_management.category.dto.DtoCategoryResponse;
+import com.example.library_management.category.mapper.CategoryMapper;
 import com.example.library_management.category.model.Category;
 import com.example.library_management.category.repository.CategoryRepository;
 import com.example.library_management.category.service.ICategoryService;
@@ -21,14 +22,11 @@ public class CategoryServiceImpl implements ICategoryService {
 
     private final CategoryRepository categoryRepository;
 
-    public CategoryServiceImpl(CategoryRepository categoryRepository) {
-        this.categoryRepository = categoryRepository;
-    }
+    private final CategoryMapper categoryMapper;
 
-    private DtoCategoryResponse categoryToDtoCategoryResponse(Category category){
-        DtoCategoryResponse dtoCategoryResponse = new DtoCategoryResponse();
-        BeanUtils.copyProperties(category, dtoCategoryResponse);
-        return dtoCategoryResponse;
+    public CategoryServiceImpl(CategoryRepository categoryRepository, CategoryMapper categoryMapper) {
+        this.categoryRepository = categoryRepository;
+        this.categoryMapper = categoryMapper;
     }
 
     @Override
@@ -43,14 +41,14 @@ public class CategoryServiceImpl implements ICategoryService {
 
         Category save = categoryRepository.save(category);
 
-        return categoryToDtoCategoryResponse(save);
+        return categoryMapper.categoryToDtoCategoryResponse(save);
     }
 
     @Override
     public DtoCategoryResponse getCategoryById(Long id) {
         Category category = categoryRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Category", "id", id));
 
-        return categoryToDtoCategoryResponse(category);
+        return categoryMapper.categoryToDtoCategoryResponse(category);
     }
 
     @Override
@@ -61,7 +59,7 @@ public class CategoryServiceImpl implements ICategoryService {
         } else {
             categories = categoryRepository.findAll(pageable);
         }
-        return categories.map(this::categoryToDtoCategoryResponse);
+        return categories.map(categoryMapper::categoryToDtoCategoryResponse);
     }
 
     @Override
@@ -70,7 +68,7 @@ public class CategoryServiceImpl implements ICategoryService {
         category.setCategoryName(input.getCategoryName());
         Category updatedCategory = categoryRepository.save(category);
 
-        return categoryToDtoCategoryResponse(updatedCategory);
+        return categoryMapper.categoryToDtoCategoryResponse(updatedCategory);
     }
 
     @Override

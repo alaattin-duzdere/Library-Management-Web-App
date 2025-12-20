@@ -4,6 +4,7 @@ import com.example.library_management.book.model.Book;
 import com.example.library_management.book.repository.BookRepository;
 import com.example.library_management.comment.dto.DtoCommentRequest;
 import com.example.library_management.comment.dto.DtoCommentResponse;
+import com.example.library_management.comment.mapper.CommentMapper;
 import com.example.library_management.comment.model.Comment;
 import com.example.library_management.comment.repository.CommentRepository;
 import com.example.library_management.comment.service.ICommentService;
@@ -28,10 +29,13 @@ public class CommentServiceImpl implements ICommentService {
 
     private final CommentRepository commentRepository;
 
-    public CommentServiceImpl(BookRepository bookRepository, UserRepository userRepository, CommentRepository commentRepository) {
+    private final CommentMapper commentMapper;
+
+    public CommentServiceImpl(BookRepository bookRepository, UserRepository userRepository, CommentRepository commentRepository, CommentMapper commentMapper) {
         this.bookRepository = bookRepository;
         this.userRepository = userRepository;
         this.commentRepository = commentRepository;
+        this.commentMapper = commentMapper;
     }
 
     private boolean isCommentOwnerOrAdmin(Comment comment){
@@ -41,37 +45,9 @@ public class CommentServiceImpl implements ICommentService {
         return comment.getUser().getId().equals(userId) || currentUser.getRoles().contains(Role.ADMIN);
     }
 
-    private Comment createCommentFromCommentRequest(DtoCommentRequest input){
-        Comment comment = new Comment();
-        comment.setContent(input.getContent());
-        comment.setCreateTime(new Date());
-
-        Long userId = SecurityUtils.getCurrentUserId();
-        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
-        comment.setUser(user);
-
-        Book book = bookRepository.findById(input.getBookId()).orElseThrow(() -> new ResourceNotFoundException("Book", "id", input.getBookId()));
-        comment.setBook(book);
-
-        return comment;
-    }
-
-    private DtoCommentResponse commentToDtoCommentResponse(Comment comment){
-        DtoCommentResponse dtoCommentResponse = new DtoCommentResponse();
-        dtoCommentResponse.setContent(comment.getContent());
-        dtoCommentResponse.setCreateTime(comment.getCreateTime());
-        dtoCommentResponse.setBookId(comment.getBook().getId());
-        dtoCommentResponse.setCommentId(comment.getId());
-
-        User user = comment.getUser();
-        dtoCommentResponse.setUserId(user.getId());
-        dtoCommentResponse.setUsername(user.getUsername());
-        return dtoCommentResponse;
-    }
-
     @Override
     public DtoCommentResponse saveComment(DtoCommentRequest input) {
-        Comment comment = createCommentFromCommentRequest(input);
+        Comment comment = commentMapper.createCommentFromCommentRequest(input);
 
         Comment savedComment = commentRepository.save(comment);
 
@@ -80,7 +56,7 @@ public class CommentServiceImpl implements ICommentService {
         book.addComment(savedComment);
         bookRepository.save(book);
 
-        return commentToDtoCommentResponse(savedComment);
+        return commentMapper.commentToDtoCommentResponse(savedComment);
     }
 
     @Override
@@ -89,7 +65,7 @@ public class CommentServiceImpl implements ICommentService {
             throw new ResourceNotFoundException("Book","id",bookId);
         }
         Page<Comment> commentPage = commentRepository.findByBookId(pageable,bookId);
-        return commentPage.map(this::commentToDtoCommentResponse);
+        return commentPage.map(commentMapper::commentToDtoCommentResponse);
     }
 
     @Override
@@ -98,7 +74,7 @@ public class CommentServiceImpl implements ICommentService {
             throw new ResourceNotFoundException("User","id",userId);
         }
         Page<Comment> commentPage = commentRepository.findByUserId(pageable,userId);
-        return commentPage.map(this::commentToDtoCommentResponse);
+        return commentPage.map(commentMapper::commentToDtoCommentResponse);
     }
 
     @Override
@@ -111,7 +87,7 @@ public class CommentServiceImpl implements ICommentService {
 
         comment.setContent(newContent);
         Comment save = commentRepository.save(comment);
-        return commentToDtoCommentResponse(save);
+        return commentMapper.commentToDtoCommentResponse(save);
     }
 
     @Override
@@ -129,6 +105,6 @@ public class CommentServiceImpl implements ICommentService {
         book.decrementCommentCount();
         bookRepository.save(book);
 
-        return commentToDtoCommentResponse(comment);
+        return commentMapper.commentToDtoCommentResponse(comment);
     }
 }
