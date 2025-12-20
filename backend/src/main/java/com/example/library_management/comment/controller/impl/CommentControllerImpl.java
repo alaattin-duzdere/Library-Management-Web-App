@@ -6,6 +6,7 @@ import com.example.library_management.comment.dto.DtoCommentRequest;
 import com.example.library_management.comment.dto.DtoCommentResponse;
 import com.example.library_management.comment.dto.DtoUpdateCommentRequest;
 import com.example.library_management.comment.service.ICommentService;
+import com.example.library_management.common.util.SecurityUtils;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,8 +14,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -47,7 +46,8 @@ public class CommentControllerImpl implements ICommentController{
     @Override
     public ResponseEntity<CustomResponseBody<Page<DtoCommentResponse>>> getMyComments(
             @PageableDefault(page = 0, size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
-        CustomResponseBody<Page<DtoCommentResponse>> body = CustomResponseBody.ok(commentService.getCommentByUserId(pageable,userIdFromSecurityContext()), "Comment get successfully");
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        CustomResponseBody<Page<DtoCommentResponse>> body = CustomResponseBody.ok(commentService.getCommentByUserId(pageable,currentUserId), "Comment get successfully");
         return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
     }
 
@@ -65,10 +65,5 @@ public class CommentControllerImpl implements ICommentController{
     public ResponseEntity<CustomResponseBody<DtoCommentResponse>> deleteComment(@PathVariable Long commentId) {
         CustomResponseBody<DtoCommentResponse> body = CustomResponseBody.ok(commentService.deleteComment(commentId), "Comment deleted successfully");
         return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
-    }
-
-    private Long userIdFromSecurityContext() {
-        SecurityContext securityContext = SecurityContextHolder.getContext();
-        return Long.parseLong(securityContext.getAuthentication().getName());
     }
 }

@@ -8,13 +8,13 @@ import com.example.library_management.comment.model.Comment;
 import com.example.library_management.comment.repository.CommentRepository;
 import com.example.library_management.comment.service.ICommentService;
 import com.example.library_management.common.enums.Role;
+import com.example.library_management.common.util.SecurityUtils;
 import com.example.library_management.exceptions.auth.ForbiddenException;
 import com.example.library_management.exceptions.client.ResourceNotFoundException;
 import com.example.library_management.user.model.User;
 import com.example.library_management.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -34,13 +34,8 @@ public class CommentServiceImpl implements ICommentService {
         this.commentRepository = commentRepository;
     }
 
-    private Long getUserIdFromContext(){
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return Long.parseLong(principal.toString());
-    }
-
     private boolean isCommentOwnerOrAdmin(Comment comment){
-        Long userId = getUserIdFromContext();
+        Long userId = SecurityUtils.getCurrentUserId();
         User currentUser = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
         return comment.getUser().getId().equals(userId) || currentUser.getRoles().contains(Role.ADMIN);
@@ -51,7 +46,7 @@ public class CommentServiceImpl implements ICommentService {
         comment.setContent(input.getContent());
         comment.setCreateTime(new Date());
 
-        Long userId = getUserIdFromContext();
+        Long userId = SecurityUtils.getCurrentUserId();
         User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
         comment.setUser(user);
 

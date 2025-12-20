@@ -77,8 +77,7 @@ public class BorrowingServiceImpl implements IBorrowingService {
     }
     @Override
     public DtoBorrowResponse borrowBook(Long bookId) {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        Long userId = Long.parseLong(principal.toString());
+        Long userId = SecurityUtils.getCurrentUserId();
 
         User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User", " id", userId));
         Book book = bookRepository.findById(bookId).orElseThrow(() -> new ResourceNotFoundException("Book"," id", bookId));
