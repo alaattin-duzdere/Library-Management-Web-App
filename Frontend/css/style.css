@@ -6,3 +6,9 @@ body {
 .login-card {
     margin-top: 10vh;
 }
+
+@media (min-width: 1400px) {
+  .container, .container-lg, .container-md, .container-sm, .container-xl, .container-xxl {
+    max-width: min(1920px, 87vw);
+  }
+}
