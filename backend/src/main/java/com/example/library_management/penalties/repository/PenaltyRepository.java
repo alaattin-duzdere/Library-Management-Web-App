@@ -1,14 +1,14 @@
 package com.example.library_management.penalties.repository;
 
 import com.example.library_management.penalties.model.Penalty;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
-import java.util.Set;
-
 @Repository
-public interface PenaltyRepository extends JpaRepository<Penalty,Long> {
+public interface PenaltyRepository extends JpaRepository<Penalty,Long>, JpaSpecificationExecutor<Penalty> {
 
-    Optional<Set<Penalty>> findByUserId(Long userId);
+    Page<Penalty> findByUserId(Long userId, Pageable pageable);
 }

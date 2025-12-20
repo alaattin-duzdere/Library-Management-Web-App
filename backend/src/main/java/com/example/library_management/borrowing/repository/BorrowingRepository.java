@@ -1,7 +1,10 @@
 package com.example.library_management.borrowing.repository;
 
 import com.example.library_management.borrowing.model.Borrowing;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -11,9 +14,11 @@ import java.util.Optional;
 import java.util.Set;
 
 @Repository
-public interface BorrowingRepository extends JpaRepository<Borrowing, Long> {
+public interface BorrowingRepository extends JpaRepository<Borrowing, Long> , JpaSpecificationExecutor<Borrowing> {
 
-    Set<Borrowing> findByUserId(Long userId);
+    Page<Borrowing> findByUserId(Long userId, Pageable pageable);
+
+    Page<Borrowing> findByBookId(Long bookId, Pageable pageable);
 
     @Query("SELECT b FROM Borrowing b WHERE b.returnDate IS NULL AND b.lastReturnDate < CURRENT_TIMESTAMP")
     List<Borrowing> findOverdueAndNotReturned();

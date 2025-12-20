@@ -5,6 +5,7 @@ import com.example.library_management.borrowing.repository.BorrowingRepository;
 import com.example.library_management.exceptions.client.ConflictException;
 import com.example.library_management.exceptions.client.ResourceNotFoundException;
 import com.example.library_management.exceptions.server.EmailServiceException;
+import com.example.library_management.penalties.repository.PenaltySpecification;
 import com.example.library_management.penalties.dto.DtoPenaltyResponse;
 import com.example.library_management.penalties.model.Penalty;
 import com.example.library_management.penalties.model.StateOfPenalty;
@@ -14,13 +15,14 @@ import com.example.library_management.penalties.service.reminder.IReminderStrate
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Set;
 
 @Slf4j
 @Service
@@ -45,25 +47,10 @@ public class PenaltyServiceImpl implements IPenaltyService {
         return dtoPenaltyResponse;
     }
 
-    @PreAuthorize("hasRole('ADMIN') or @customPermissionEvaluator.isOwner(authentication, #userId)")
     @Override
-    public List<DtoPenaltyResponse> getUserPenalties(Long userId) {
-        Set<Penalty> penalties = penaltyRepository.findByUserId(userId).orElseThrow(() -> new ResourceNotFoundException("Penalty", "User ID", userId));
-        if (penalties.isEmpty()){
-            throw new ResourceNotFoundException("Penalty", "User ID", userId);
-        }
-        List<DtoPenaltyResponse> listOfDtoPenalties = penalties.stream()
-                .map(this::penaltyToDtoPenaltyResponse)
-                .toList();
-
-        return listOfDtoPenalties;
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    @Override
-    public List<DtoPenaltyResponse> getAllPenalties() {
-
-        return penaltyRepository.findAll().stream().map(this::penaltyToDtoPenaltyResponse).toList();
+    public Page<DtoPenaltyResponse> getPenalties(Pageable pageable, Long userId, StateOfPenalty state) {
+        Specification<Penalty> spec = PenaltySpecification.findByCriteria(userId, state);
+        return penaltyRepository.findAll(spec, pageable).map(this::penaltyToDtoPenaltyResponse);
     }
 
     @Override

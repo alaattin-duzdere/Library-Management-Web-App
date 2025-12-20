@@ -21,6 +21,8 @@ public class DtoBorrowResponse {
 
     private String bookTitle;
 
+    private String userName;
+
     private Date borrowedDate;
 
     private Date lastReturnDate;
