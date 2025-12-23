@@ -18,7 +18,6 @@ import com.example.library_management.penalties.repository.PenaltyRepository;
 import com.example.library_management.user.model.User;
 import com.example.library_management.user.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +26,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
@@ -61,6 +61,7 @@ public class BorrowingServiceImpl implements IBorrowingService {
     }
 
     @Override
+    @Transactional
     public DtoBorrowResponse borrowBook(Long bookId) {
         Long userId = SecurityUtils.getCurrentUserId();
 
@@ -85,12 +86,14 @@ public class BorrowingServiceImpl implements IBorrowingService {
         return borrowingMapper.borrowingToDtoBorrowResponse(borrowingRepository.save(borrowing));
     }
 
+    @Transactional(readOnly=true)
     @Override
     public Page<DtoBorrowResponse> getBorrowings(Pageable pageable, Long borrowingId, Long userId, Long bookId) {
         Specification<Borrowing> spec = BorrowingSpecification.findByCriteria(borrowingId, userId, bookId);
         return borrowingRepository.findAll(spec, pageable).map(borrowingMapper::borrowingToDtoBorrowResponse);
     }
 
+    @Transactional
     @Override
     public DtoBorrowResponse returnBook(Long borrowingId) {
         Borrowing borrowing = borrowingRepository.findById(borrowingId).orElseThrow(() -> new ResourceNotFoundException("Borrowing", " id", borrowingId));

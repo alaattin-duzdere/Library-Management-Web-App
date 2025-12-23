@@ -21,14 +21,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
 @Slf4j
 @Service
+@Transactional
 public class BookServiceImpl implements IBookService {
 
     private final BookRepository bookRepository;
@@ -77,12 +78,14 @@ public class BookServiceImpl implements IBookService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public DtoBookResponse getBookById(Long bookId) {
         Book book = bookRepository.findById(bookId).orElseThrow(() -> new ResourceNotFoundException("Book", "id", bookId));
         return bookMapper.createDtoFromBook(book);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public DtoBookResponse getBookByIsbn(Long isbn) {
         Book book = bookRepository.findByIsbn(isbn).orElseThrow(() -> new ResourceNotFoundException("Book", "isbn", isbn));
         return bookMapper.createDtoFromBook(book);
@@ -99,6 +102,7 @@ public class BookServiceImpl implements IBookService {
 //    }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<DtoBookResponse> getAllBooks(Pageable pageable, String search, Long categoryId, Long authorId) {
         Page<Book> bookPage = bookRepository.searchBooks(search, categoryId, authorId, pageable);
         return bookPage.map(book -> bookMapper.createDtoFromBook(book));

@@ -17,10 +17,10 @@ import com.example.library_management.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
-import java.util.Date;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional
 public class CommentServiceImpl implements ICommentService {
 
     private final BookRepository bookRepository;
@@ -60,6 +60,7 @@ public class CommentServiceImpl implements ICommentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<DtoCommentResponse> getCommentByBookId(Pageable pageable, Long bookId) {
         if (!bookRepository.existsById(bookId)){
             throw new ResourceNotFoundException("Book","id",bookId);
@@ -69,6 +70,7 @@ public class CommentServiceImpl implements ICommentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<DtoCommentResponse> getCommentByUserId(Pageable pageable,Long userId) {
         if (!userRepository.existsById(userId)){
             throw new ResourceNotFoundException("User","id",userId);

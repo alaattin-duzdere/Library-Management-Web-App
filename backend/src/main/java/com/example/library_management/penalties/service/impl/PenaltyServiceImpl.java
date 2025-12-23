@@ -44,12 +44,14 @@ public class PenaltyServiceImpl implements IPenaltyService {
         this.reminderStrategy = reminderStrategy;
     }
 
+    @Transactional(readOnly = true)
     @Override
     public Page<DtoPenaltyResponse> getPenalties(Pageable pageable, Long userId, StateOfPenalty state) {
         Specification<Penalty> spec = PenaltySpecification.findByCriteria(userId, state);
         return penaltyRepository.findAll(spec, pageable).map(penaltyMapper::penaltyToDtoPenaltyResponse);
     }
 
+    @Transactional
     @Override
     public DtoPenaltyResponse payPenalty(Long penaltyId, Double amount) {
         log.warn("Penalty Id: " +penaltyId);
@@ -67,7 +69,6 @@ public class PenaltyServiceImpl implements IPenaltyService {
     }
 
     @Scheduled(cron = "0 0 2 * * ?") // 02:00
-    @Transactional(readOnly = true)
     public void processOverdueBorrowings() {
         List<Borrowing> overdueBorrowings = borrowingRepository.findOverdueAndNotReturned();
         log.warn("Found " + overdueBorrowings.size() + " overdue borrowings.");
