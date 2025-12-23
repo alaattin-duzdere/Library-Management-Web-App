@@ -36,8 +36,11 @@ import java.util.Date;
 @Service
 public class BorrowingServiceImpl implements IBorrowingService {
 
-    @Value("${durationDay}")
+    @Value("${durationDay:#{null}}")
     private Long durationDay;
+
+    @Value("${durationSeconds:#{null}}")
+    private Long durationSeconds;
 
     @Value("${penaltyCostPerDay}")
     private Double penaltyCostPerDay;
@@ -60,6 +63,18 @@ public class BorrowingServiceImpl implements IBorrowingService {
         this.penaltyRepository = penaltyRepository;
     }
 
+    // This
+    private long durationInMillis(){
+        if (durationSeconds != null) {
+            return durationSeconds * 1000;
+        } else if (durationDay != null) {
+            return durationDay * 24 * 60 * 60 * 1000;
+        } else {
+            // Default to 14 days if neither is set
+            return 14L * 24 * 60 * 60 * 1000;
+        }
+    }
+
     @Override
     @Transactional
     public DtoBorrowResponse borrowBook(Long bookId) {
@@ -76,7 +91,7 @@ public class BorrowingServiceImpl implements IBorrowingService {
                 .user(user)
                 .book(book)
                 .borrowedDate(new Date())
-                .lastReturnDate(new Date(System.currentTimeMillis() + durationDay*24*60*60*1000))
+                .lastReturnDate(new Date(System.currentTimeMillis() + durationInMillis()))
                 .build();
         borrowing.setCreateTime(new Date());
 

@@ -272,6 +272,7 @@
         }
 
         // --- 1. ÖDÜNÇ KİTAPLAR (Pageable) ---
+        // --- 1. ÖDÜNÇ KİTAPLAR (GÜNCELLENDİ: Detaylı Tarih Gösterimi) ---
         async function loadMyBorrowings() {
             const activeContainer = document.getElementById('borrowed-active-list');
             const historyContainer = document.getElementById('borrowed-history-list');
@@ -284,7 +285,6 @@
                 const res = await Api.getMyBorrowings(0, 50);
                 activeContainer.innerHTML = ''; 
 
-                // GÜNCELLEME: Veri res.data.content içinde
                 const borrowings = res.success ? (res.data.content || []) : [];
 
                 if (borrowings.length > 0) {
@@ -296,10 +296,37 @@
                         activeContainer.innerHTML = '<div class="alert alert-light text-center text-muted border border-dashed">Şu an ödünçte kitabınız yok.</div>';
                     } else {
                         activeList.forEach(item => {
+                            // --- YENİ ZAMAN HESAPLAMA MANTIĞI ---
                             const lastDate = new Date(item.lastReturnDate);
-                            const isLate = lastDate < new Date();
-                            const daysLeft = Math.ceil((lastDate - new Date()) / (1000 * 60 * 60 * 24));
-                            
+                            const now = new Date();
+                            const diffMs = lastDate - now; // Milisaniye farkı
+                            const isLate = diffMs < 0;
+                            const absMs = Math.abs(diffMs); // Mutlak değer (negatifse pozitife çevir)
+
+                            // Zaman birimlerine çevir
+                            const days = Math.floor(absMs / (1000 * 60 * 60 * 24));
+                            const hours = Math.floor((absMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            const minutes = Math.floor((absMs % (1000 * 60 * 60)) / (1000 * 60));
+
+                            let timeString = "";
+                            if (days > 0) {
+                                timeString = `${days} gün`;
+                                if (hours > 0) timeString += ` ${hours} saat`; // Örn: 1 gün 4 saat
+                            } else if (hours > 0) {
+                                timeString = `${hours} saat`;
+                            } else {
+                                timeString = `${minutes} dakika`;
+                            }
+
+                            // Durum Metni ve Rengi
+                            let statusHtml = "";
+                            if (isLate) {
+                                statusHtml = `<div class="text-danger fw-bold small"><i class="bi bi-exclamation-circle-fill me-1"></i>Süresi Geçti (${timeString})</div>`;
+                            } else {
+                                statusHtml = `<div class="text-muted small"><i class="bi bi-clock me-1"></i>Son Teslim: ${timeString} kaldı</div>`;
+                            }
+                            // -------------------------------------
+
                             activeContainer.innerHTML += `
                                 <div class="col-md-12">
                                     <div class="d-flex align-items-center bg-white p-3 rounded-3 shadow-sm border-start border-4 ${isLate ? 'border-danger' : 'border-primary'}">
@@ -308,10 +335,7 @@
                                         </div>
                                         <div class="flex-grow-1">
                                             <h6 class="mb-1 fw-bold text-dark">${item.bookTitle || 'Kitap ID: ' + item.bookId}</h6>
-                                            <div class="small ${isLate ? 'text-danger fw-bold' : 'text-muted'}">
-                                                <i class="bi bi-calendar-event me-1"></i> 
-                                                ${isLate ? `Süresi Geçti (${Math.abs(daysLeft)} gün)` : `Son Teslim: ${daysLeft} gün kaldı`}
-                                            </div>
+                                            ${statusHtml}
                                         </div>
                                         <div class="d-flex gap-2">
                                             ${item.bookId ? `<a href="/book-detail.html?id=${item.bookId}" class="btn btn-sm btn-outline-secondary" title="Detay"><i class="bi bi-eye"></i></a>` : ''}
@@ -328,7 +352,7 @@
                         historyContainer.innerHTML = '<div class="text-center text-muted py-2 small">Yakın zamanda geçmiş kayıt bulunamadı.</div>';
                     } else {
                         historyList.forEach(item => {
-                            const rDate = new Date(item.returnDate).toLocaleDateString('tr-TR');
+                            const rDate = new Date(item.returnDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
                             historyContainer.innerHTML += `
                                 <div class="col-md-12">
                                     <div class="d-flex align-items-center bg-white p-2 rounded border opacity-75">
