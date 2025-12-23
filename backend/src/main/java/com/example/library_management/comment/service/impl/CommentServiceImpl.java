@@ -52,9 +52,7 @@ public class CommentServiceImpl implements ICommentService {
         Comment savedComment = commentRepository.save(comment);
 
         Book book = savedComment.getBook();
-        book.incrementCommentCount();
         book.addComment(savedComment);
-        bookRepository.save(book);
 
         return commentMapper.commentToDtoCommentResponse(savedComment);
     }
@@ -104,8 +102,6 @@ public class CommentServiceImpl implements ICommentService {
 
         Book book = comment.getBook();
         book.removeComment(comment);
-        book.decrementCommentCount();
-        bookRepository.save(book);
 
         return commentMapper.commentToDtoCommentResponse(comment);
     }

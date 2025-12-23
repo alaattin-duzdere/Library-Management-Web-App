@@ -66,12 +66,4 @@ public class Book extends BaseEntity {
         this.comments.remove(comment);
     }
 
-    // Helper methods for likes
-    public void incrementLikeCount() {this.likeCount++;}
-    public void decrementLikeCount() {if (this.likeCount > 0) this.likeCount--; }
-
-    // Helper methods for comment count
-    public void incrementCommentCount() {this.commentCount++;}
-    public void decrementCommentCount() {if (this.commentCount > 0) this.commentCount--; }
-
 }

@@ -44,14 +44,10 @@ public class BookLikeServiceImpl implements IBookLikeService {
         if (bookLikeRepository.existsByUserIdAndBookId(userId, bookId)) {
             //Unlike
             bookLikeRepository.deleteByUserIdAndBookId(userId, bookId);
-            book.decrementLikeCount();
-            bookRepository.save(book);
         } else {
             // Like
             BookLike like = new BookLike(user, book);
             bookLikeRepository.save(like);
-            book.incrementLikeCount();
-            bookRepository.save(book);
         }
     }
 
