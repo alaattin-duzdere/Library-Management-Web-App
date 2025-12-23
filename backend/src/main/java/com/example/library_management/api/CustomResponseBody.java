@@ -10,7 +10,7 @@ import lombok.Setter;
 public class CustomResponseBody<T> {
     private boolean success;
     private final int httpStatus;
-    private final String code; // The unique application code (e.g., S200, E404-RES)
+    private final String code;
     private final String message;
     private final T data;
 
@@ -18,7 +18,6 @@ public class CustomResponseBody<T> {
         this.success = apiStatus.getHttpStatus().is2xxSuccessful();
         this.httpStatus = apiStatus.getHttpStatus().value();
         this.code = apiStatus.getCode();
-        // Use custom message if provided, otherwise use the default
         this.message = (message != null && !message.isEmpty()) ? message : apiStatus.getDefaultMessage();
         this.data = data;
     }

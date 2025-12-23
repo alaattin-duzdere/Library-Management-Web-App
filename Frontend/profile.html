@@ -43,7 +43,6 @@
 
         /* İçerik Kartları */
         .content-card { border: none; border-radius: 12px; min-height: 400px; }
-        .book-cover-sm { width: 60px; height: 90px; object-fit: cover; border-radius: 6px; }
         
         /* Yorum Balonu */
         .comment-bubble { background: #f8f9fa; border-radius: 12px; padding: 15px; position: relative; }
@@ -232,68 +231,65 @@
             document.querySelectorAll('.sidebar-menu .list-group-item').forEach(link => {
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
-                    // Aktif class değiştir
                     document.querySelector('.sidebar-menu .active').classList.remove('active');
                     e.currentTarget.classList.add('active');
                     
-                    // Görünümü değiştir
                     const targetId = e.currentTarget.dataset.target;
                     document.querySelectorAll('.view-section').forEach(el => el.classList.add('d-none'));
                     document.getElementById(targetId).classList.remove('d-none');
                     
-                    // Lazy Load (İlgili veri yoksa yükle)
+                    // Lazy Load
                     if(targetId === 'favorites-view' && !document.getElementById('favorites-grid').hasChildNodes()) loadFavorites(0);
                     if(targetId === 'comments-view' && !document.getElementById('comments-list').hasChildNodes()) loadMyComments(0);
-                    
-                    // --- HATA DÜZELTME BURADA ---
-                    // Eski kod: document.getElementById('penalties-list') arıyordu.
-                    // Yeni kod: document.getElementById('penalties-active-list') arıyor.
                     if(targetId === 'penalties-view' && !document.getElementById('penalties-active-list').hasChildNodes()) loadMyPenalties();
                 });
             });
 
-            // Başlangıç verileri
             loadMyBorrowings();
-            updateStats(); // Üstteki sayaçları güncelle
+            updateStats();
         });
 
-        // Üstteki İstatistikleri Güncelle (Basitçe mevcut endpointleri çağırıp sayısını alacağız)
+        // --- İSTATİSTİKLER ---
         async function updateStats() {
             try {
-                // Paralel istek atalım
+                // Backend Page nesnesi döndüğü için totalElements alanını kullanıyoruz
                 const [favRes, comRes, borRes] = await Promise.all([
-                    Api.getMyFavorites(0, 1), // Sadece totalElements lazım
+                    Api.getMyFavorites(0, 1), 
                     Api.getMyComments(0, 1),
-                    Api.getMyBorrowings(currentUserId)
+                    Api.getMyBorrowings(0, 100) // Aktifleri saymak için biraz fazla çekiyoruz
                 ]);
                 
+                // .data.totalElements ile toplam kayıt sayısını alıyoruz
                 if(favRes.success) document.getElementById('stat-fav-count').innerText = favRes.data.totalElements || 0;
                 if(comRes.success) document.getElementById('stat-comment-count').innerText = comRes.data.totalElements || 0;
+                
                 if(borRes.success) {
-                    // Sadece aktif ödünçleri say
-                    const active = borRes.data.filter(b => !b.returnDate).length;
+                    const content = borRes.data.content || [];
+                    const active = content.filter(b => !b.returnDate).length;
                     document.getElementById('stat-borrow-count').innerText = active;
                 }
             } catch(e) { console.log('İstatistik hatası', e); }
         }
 
-        // --- 1. ÖDÜNÇ KİTAPLAR (GÜNCELLENDİ: Başlık Gösterimi) ---
+        // --- 1. ÖDÜNÇ KİTAPLAR (Pageable) ---
         async function loadMyBorrowings() {
             const activeContainer = document.getElementById('borrowed-active-list');
             const historyContainer = document.getElementById('borrowed-history-list');
             
-            // Yükleniyor simgesi
             activeContainer.innerHTML = '<div class="text-center w-100"><div class="spinner-border text-primary spinner-border-sm"></div></div>';
             historyContainer.innerHTML = ''; 
 
             try {
-                const res = await Api.getMyBorrowings(currentUserId);
-                activeContainer.innerHTML = ''; // Temizle
+                // Backend pageable bekliyor: page=0, size=50 (Son 50 işlem)
+                const res = await Api.getMyBorrowings(0, 50);
+                activeContainer.innerHTML = ''; 
 
-                if (res.success && res.data.length > 0) {
-                    // Veriyi ikiye ayır: İade tarihi OLMAYANLAR (Aktif) ve OLANLAR (Geçmiş)
-                    const activeList = res.data.filter(item => !item.returnDate);
-                    const historyList = res.data.filter(item => item.returnDate);
+                // GÜNCELLEME: Veri res.data.content içinde
+                const borrowings = res.success ? (res.data.content || []) : [];
+
+                if (borrowings.length > 0) {
+                    const activeList = borrowings.filter(item => !item.returnDate);
+                    const historyList = borrowings.filter(item => item.returnDate);
 
                     // --- AKTİF LİSTEYİ BAS ---
                     if(activeList.length === 0) {
@@ -304,7 +300,6 @@
                             const isLate = lastDate < new Date();
                             const daysLeft = Math.ceil((lastDate - new Date()) / (1000 * 60 * 60 * 24));
                             
-                            // GÜNCELLEME BURADA YAPILDI: Kitap ID yerine bookTitle kullanıldı
                             activeContainer.innerHTML += `
                                 <div class="col-md-12">
                                     <div class="d-flex align-items-center bg-white p-3 rounded-3 shadow-sm border-start border-4 ${isLate ? 'border-danger' : 'border-primary'}">
@@ -312,7 +307,7 @@
                                             <i class="bi bi-book fs-4 text-primary"></i>
                                         </div>
                                         <div class="flex-grow-1">
-                                            <h6 class="mb-1 fw-bold text-dark">${item.bookTitle}</h6>
+                                            <h6 class="mb-1 fw-bold text-dark">${item.bookTitle || 'Kitap ID: ' + item.bookId}</h6>
                                             <div class="small ${isLate ? 'text-danger fw-bold' : 'text-muted'}">
                                                 <i class="bi bi-calendar-event me-1"></i> 
                                                 ${isLate ? `Süresi Geçti (${Math.abs(daysLeft)} gün)` : `Son Teslim: ${daysLeft} gün kaldı`}
@@ -330,19 +325,16 @@
 
                     // --- GEÇMİŞ LİSTEYİ BAS ---
                     if(historyList.length === 0) {
-                        historyContainer.innerHTML = '<div class="text-center text-muted py-2 small">Geçmiş kayıt bulunamadı.</div>';
+                        historyContainer.innerHTML = '<div class="text-center text-muted py-2 small">Yakın zamanda geçmiş kayıt bulunamadı.</div>';
                     } else {
                         historyList.forEach(item => {
-                            // Tarih formatlama
                             const rDate = new Date(item.returnDate).toLocaleDateString('tr-TR');
-                            
-                            // GÜNCELLEME BURADA YAPILDI: Kitap ID yerine bookTitle kullanıldı
                             historyContainer.innerHTML += `
                                 <div class="col-md-12">
                                     <div class="d-flex align-items-center bg-white p-2 rounded border opacity-75">
                                         <div class="me-3 text-secondary ps-2"><i class="bi bi-check-circle-fill"></i></div>
                                         <div class="flex-grow-1">
-                                            <span class="fw-bold text-dark small">${item.bookTitle}</span>
+                                            <span class="fw-bold text-dark small">${item.bookTitle || 'Kitap ID: ' + item.bookId}</span>
                                             <span class="d-block small text-muted">İade Tarihi: ${rDate}</span>
                                         </div>
                                         ${item.bookId ? `<a href="/book-detail.html?id=${item.bookId}" class="btn btn-sm btn-link text-secondary"><i class="bi bi-eye"></i></a>` : ''}
@@ -366,7 +358,7 @@
             try { const res = await Api.returnBook(id); if(res.success) { alert('İade edildi.'); loadMyBorrowings(); updateStats(); } else alert(res.message); } catch(e){}
         }
 
-        // --- 2. FAVORİLER ---
+        // --- 2. FAVORİLER (Pageable) ---
         async function loadFavorites(page) {
             const grid = document.getElementById('favorites-grid');
             const pagination = document.getElementById('favorites-pagination');
@@ -376,6 +368,7 @@
                 const res = await Api.getMyFavorites(page, 8);
                 grid.innerHTML = ''; pagination.innerHTML = '';
                 
+                // GÜNCELLEME: res.data.content kontrolü
                 if (res.success && res.data.content.length > 0) {
                     res.data.content.forEach(book => {
                         grid.innerHTML += `
@@ -400,7 +393,7 @@
             if(confirm('Kaldırılsın mı?')) { await Api.toggleLike(id); document.getElementById(`fav-item-${id}`).remove(); updateStats(); } 
         }
 
-        // --- 3. YORUMLAR (Balon tasarımı) ---
+        // --- 3. YORUMLAR (Pageable) ---
         async function loadMyComments(page) {
             const list = document.getElementById('comments-list');
             const pagination = document.getElementById('comments-pagination');
@@ -410,6 +403,7 @@
                 const res = await Api.getMyComments(page, 5);
                 list.innerHTML = ''; pagination.innerHTML = '';
                 
+                // GÜNCELLEME: res.data.content kontrolü
                 if (res.success && res.data.content.length > 0) {
                     res.data.content.forEach(com => {
                         const date = new Date(com.createTime).toLocaleDateString('tr-TR');
@@ -441,42 +435,29 @@
             if(confirm('Sil?')) { await Api.deleteComment(id); loadMyComments(0); updateStats(); } 
         }
 
-        // --- 4. CEZALAR (Liste tasarımı) ---
-        // --- 4. CEZALAR (HATA AYIKLAMALI VE GÜNCELLENMİŞ VERSİYON) ---
+        // --- 4. CEZALAR (Pageable) ---
         async function loadMyPenalties() {
             const activeContainer = document.getElementById('penalties-active-list');
             const historyContainer = document.getElementById('penalties-history-list');
 
-            // Yükleniyor simgesi
             activeContainer.innerHTML = '<div class="spinner-border text-danger spinner-border-sm mx-auto"></div>';
             historyContainer.innerHTML = '';
 
             try {
                 const res = await Api.getMyPenalties();
+                activeContainer.innerHTML = ''; 
                 
-                // HATA AYIKLAMA: Tarayıcı konsoluna (F12) gelen veriyi yazdırıyoruz.
-                // Eğer çalışmazsa, konsoldaki bu çıktıya bakarak alan adlarını kontrol et.
-                console.log("Cezalar API Yanıtı:", res);
-
-                activeContainer.innerHTML = ''; // Temizle
-                
-                // Veri yapısı kontrolü (Backend liste mi yoksa sayfalama mı gönderiyor?)
+                // GÜNCELLEME: PenaltyController Page döndürdüğü için .content kontrolü yapıyoruz
                 let penalties = [];
                 if (res.success) {
-                    if (Array.isArray(res.data)) {
-                        penalties = res.data; // Direkt liste geliyorsa
-                    } else if (res.data && Array.isArray(res.data.content)) {
-                        penalties = res.data.content; // Sayfalı yapı geliyorsa (.content)
-                    }
+                    if (Array.isArray(res.data)) penalties = res.data;
+                    else if (res.data && Array.isArray(res.data.content)) penalties = res.data.content;
                 }
 
                 if (penalties.length > 0) {
-                    // "Ödendi" kontrolü için backend'deki duruma bakıyoruz.
-                    // NOT: Backend'de enum adı 'PAID' değilse (örn: 'ODENDI', 'Paid' vs.) burayı güncellemelisin.
                     const unpaidList = penalties.filter(p => p.stateOfPenalty !== 'PAID');
                     const paidList = penalties.filter(p => p.stateOfPenalty === 'PAID');
 
-                    // --- ÖDENMEMİŞ (AKTİF) ---
                     if(unpaidList.length > 0) {
                         unpaidList.forEach(p => {
                             activeContainer.innerHTML += `
@@ -496,7 +477,6 @@
                         activeContainer.innerHTML = '<div class="text-success text-center py-3 border border-success border-dashed rounded bg-success bg-opacity-10"><i class="bi bi-check-circle fs-3"></i><br>Harika! Ödenmemiş cezanız yok.</div>';
                     }
 
-                    // --- ÖDENMİŞ (GEÇMİŞ) ---
                     if(paidList.length > 0) {
                         paidList.forEach(p => {
                             historyContainer.innerHTML += `
@@ -514,7 +494,6 @@
                     }
 
                 } else {
-                    // Hiç veri yoksa
                     activeContainer.innerHTML = '<div class="text-success text-center py-3 border border-success border-dashed rounded bg-success bg-opacity-10"><i class="bi bi-check-circle fs-3"></i><br>Harika! Hiç cezanız yok.</div>';
                 }
 
@@ -527,16 +506,11 @@
             if(confirm('Ödensin mi?')) { await Api.payPenalty(id, amt); loadMyPenalties(); }
         }
 
-        // Pagination Helper
+        // --- SAYFALAMA HELPER ---
         function renderPagination(pageInfo, container, loadFn) {
             if (pageInfo.totalPages <= 1) return;
-            const btn = (t,p,a,d) => `<button onclick="${d?'':'loadFn('+p+')'}" class="btn btn-sm mx-1 ${a?'btn-primary':'btn-light'}" ${d?'disabled':''}>${t}</button>`;
-            
-            // loadFn fonksiyonunu global scope'da çağırmak için string olarak fonksiyona erişmeliyiz veya
-            // basitçe onclick içine fonksiyon adını string olarak değil direkt JS referansı olarak veremediğimizden (innerHTML ile ekliyoruz),
-            // window objesine bu fonksiyonları bağlayabiliriz veya daha temiz bir event listener yapısı kurabiliriz.
-            // Ancak bu basit yapı için window'a atamak en kolayıdır.
-            window.loadFnRef = loadFn; // Geçici referans
+            // Fonksiyon referansını global'e ata
+            window.loadFnRef = loadFn; 
             
             let html = '';
             html += `<button class="btn btn-sm btn-light mx-1" onclick="window.loadFnRef(${pageInfo.number-1})" ${pageInfo.first?'disabled':''}>«</button>`;

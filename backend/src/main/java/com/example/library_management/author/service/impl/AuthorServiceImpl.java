@@ -2,6 +2,7 @@ package com.example.library_management.author.service.impl;
 
 import com.example.library_management.author.dto.DtoAuthorRequest;
 import com.example.library_management.author.dto.DtoAuthorResponse;
+import com.example.library_management.author.mapper.AuthorMapper;
 import com.example.library_management.author.model.Author;
 import com.example.library_management.author.repository.AuthorRepository;
 import com.example.library_management.author.service.IAuthorService;
@@ -22,33 +23,28 @@ public class AuthorServiceImpl implements IAuthorService {
 
     private final AuthorRepository authorRepository;
 
-    public AuthorServiceImpl(AuthorRepository authorRepository) {
-        this.authorRepository = authorRepository;
-    }
+    private final AuthorMapper authorMapper;
 
-    private DtoAuthorResponse AuthorToDtoAuthorResponse(Author author){
-        DtoAuthorResponse dtoAuthorResponse = new DtoAuthorResponse();
-        BeanUtils.copyProperties(author, dtoAuthorResponse);
-        return dtoAuthorResponse;
+    public AuthorServiceImpl(AuthorRepository authorRepository, AuthorMapper authorMapper) {
+        this.authorRepository = authorRepository;
+        this.authorMapper = authorMapper;
     }
 
     @Override
     public DtoAuthorResponse saveAuthor(DtoAuthorRequest input) {
-        Author author = new Author();
-        author.setFirstName(input.getFirstName());
-        author.setLastName(input.getLastName());
+        Author author = authorMapper.dtoAuthorRequestToAuthor(input);
         author.setCreateTime(new Date());
 
         Author savedAuthor = authorRepository.save(author);
 
-        return AuthorToDtoAuthorResponse(savedAuthor);
+        return authorMapper.AuthorToDtoAuthorResponse(savedAuthor);
     }
 
     @Override
     public DtoAuthorResponse getAuthorById(Long id) {
         Author author = authorRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Author", " id", id));
 
-        return AuthorToDtoAuthorResponse(author);
+        return authorMapper.AuthorToDtoAuthorResponse(author);
     }
 
     @Override
@@ -59,7 +55,7 @@ public class AuthorServiceImpl implements IAuthorService {
         } else {
             authors = authorRepository.findAll(pageable);
         }
-        return authors.map(this::AuthorToDtoAuthorResponse);
+        return authors.map(author -> authorMapper.AuthorToDtoAuthorResponse(author));
     }
 
     @Override
@@ -70,7 +66,7 @@ public class AuthorServiceImpl implements IAuthorService {
 
         Author updatedAuthor = authorRepository.save(author);
 
-        return AuthorToDtoAuthorResponse(updatedAuthor);
+        return authorMapper.AuthorToDtoAuthorResponse(updatedAuthor);
     }
 
     @Override

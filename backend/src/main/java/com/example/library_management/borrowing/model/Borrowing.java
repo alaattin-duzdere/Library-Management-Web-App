@@ -4,11 +4,10 @@ import com.example.library_management.book.model.Book;
 import com.example.library_management.book.model.Situation;
 import com.example.library_management.common.model.BaseEntity;
 import com.example.library_management.user.model.User;
-import jakarta.persistence.Entity;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
 
 import java.util.Date;
 
@@ -20,10 +19,11 @@ import java.util.Date;
 @Entity
 public class Borrowing extends BaseEntity {
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     private User user;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
+    @NotFound(action = NotFoundAction.IGNORE)
     private Book book;
 
     private Date borrowedDate;

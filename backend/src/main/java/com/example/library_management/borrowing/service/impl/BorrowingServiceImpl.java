@@ -2,11 +2,14 @@ package com.example.library_management.borrowing.service.impl;
 
 import com.example.library_management.book.model.Book;
 import com.example.library_management.book.repository.BookRepository;
+import com.example.library_management.borrowing.mapper.BorrowingMapper;
+import com.example.library_management.borrowing.repository.BorrowingSpecification;
 import com.example.library_management.borrowing.dto.DtoBorrowResponse;
 import com.example.library_management.borrowing.model.Borrowing;
 import com.example.library_management.book.model.Situation;
 import com.example.library_management.borrowing.repository.BorrowingRepository;
 import com.example.library_management.borrowing.service.IBorrowingService;
+import com.example.library_management.common.util.SecurityUtils;
 import com.example.library_management.exceptions.client.ConflictException;
 import com.example.library_management.exceptions.client.ResourceNotFoundException;
 import com.example.library_management.penalties.model.Penalty;
@@ -15,20 +18,19 @@ import com.example.library_management.penalties.repository.PenaltyRepository;
 import com.example.library_management.user.model.User;
 import com.example.library_management.user.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.access.prepost.PostAuthorize;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
-import java.util.List;
-import java.util.Set;
 
 @Slf4j
 @Service
@@ -42,80 +44,56 @@ public class BorrowingServiceImpl implements IBorrowingService {
 
     private final BorrowingRepository borrowingRepository;
 
+    private final BorrowingMapper borrowingMapper;
+
     private final BookRepository bookRepository;
 
     private final UserRepository userRepository;
 
     private final PenaltyRepository penaltyRepository;
 
-    public BorrowingServiceImpl(BorrowingRepository borrowingRepository, BookRepository bookRepository, UserRepository userRepository, PenaltyRepository penaltyRepository) {
+    public BorrowingServiceImpl(BorrowingRepository borrowingRepository, BorrowingMapper borrowingMapper, BookRepository bookRepository, UserRepository userRepository, PenaltyRepository penaltyRepository) {
         this.borrowingRepository = borrowingRepository;
+        this.borrowingMapper = borrowingMapper;
         this.bookRepository = bookRepository;
         this.userRepository = userRepository;
         this.penaltyRepository = penaltyRepository;
     }
 
-    private DtoBorrowResponse borrowingToDtoBorrowResponse(Borrowing borrowing) {
-        if (borrowing == null) {
-            return null;
-        }
-        DtoBorrowResponse dto = new DtoBorrowResponse();
-
-        BeanUtils.copyProperties(borrowing, dto);
-        dto.setBorrowingId(borrowing.getId());
-        dto.setUserId(borrowing.getUser().getId());
-        if (borrowing.getBook()==null){
-            dto.setBookId(null);
-            dto.setBookTitle("Book has been deleted");
-        }
-        else {
-            dto.setBookId(borrowing.getBook().getId());
-            dto.setBookTitle(borrowing.getBook().getTitle());
-        }
-
-        return dto;
-    }
     @Override
+    @Transactional
     public DtoBorrowResponse borrowBook(Long bookId) {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        Long userId = Long.parseLong(principal.toString());
+        Long userId = SecurityUtils.getCurrentUserId();
 
         User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User", " id", userId));
         Book book = bookRepository.findById(bookId).orElseThrow(() -> new ResourceNotFoundException("Book"," id", bookId));
 
-        if (book.getSituation()== Situation.AVAILABLE){
-            Borrowing borrowing = Borrowing.builder()
-                    .user(user)
-                    .book(book)
-                    .borrowedDate(new Date())
-                    .lastReturnDate(new Date(System.currentTimeMillis() + durationDay*24*60*60*1000))
-                    .build();
-            borrowing.setCreateTime(new Date());
-
-            borrowingRepository.save(borrowing);
-
-            book.setSituation(Situation.BORROWED);
-            bookRepository.save(book);
-
-            return borrowingToDtoBorrowResponse(borrowing);
+        if (book.getSituation() != Situation.AVAILABLE){
+            throw new ConflictException("Book is not available for borrowing");
         }
-        throw new ConflictException("Book is not available for borrowing");
+
+        Borrowing borrowing = Borrowing.builder()
+                .user(user)
+                .book(book)
+                .borrowedDate(new Date())
+                .lastReturnDate(new Date(System.currentTimeMillis() + durationDay*24*60*60*1000))
+                .build();
+        borrowing.setCreateTime(new Date());
+
+        book.setSituation(Situation.BORROWED);
+        bookRepository.save(book);
+
+        return borrowingMapper.borrowingToDtoBorrowResponse(borrowingRepository.save(borrowing));
     }
 
-    @PostAuthorize("hasPermission(returnObject, 'read')")
+    @Transactional(readOnly=true)
     @Override
-    public DtoBorrowResponse getBorrowingDetails(Long borrowingId) {
-        Borrowing borrowing = borrowingRepository.findById(borrowingId).orElseThrow(() -> new ResourceNotFoundException("Borrowing", " id", borrowingId));
-        return borrowingToDtoBorrowResponse(borrowing);
+    public Page<DtoBorrowResponse> getBorrowings(Pageable pageable, Long borrowingId, Long userId, Long bookId) {
+        Specification<Borrowing> spec = BorrowingSpecification.findByCriteria(borrowingId, userId, bookId);
+        return borrowingRepository.findAll(spec, pageable).map(borrowingMapper::borrowingToDtoBorrowResponse);
     }
 
-    @PreAuthorize("hasRole('ADMIN') or @customPermissionEvaluator.isOwner(authentication, #userId)")
-    @Override
-    public List<DtoBorrowResponse> getBorrowingByUserId(Long userId) {
-        Set<Borrowing> borrowings = borrowingRepository.findByUserId(userId);
-        return borrowings.stream().map(borrowing -> borrowingToDtoBorrowResponse(borrowing)).toList();
-    }
-
+    @Transactional
     @Override
     public DtoBorrowResponse returnBook(Long borrowingId) {
         Borrowing borrowing = borrowingRepository.findById(borrowingId).orElseThrow(() -> new ResourceNotFoundException("Borrowing", " id", borrowingId));
@@ -132,7 +110,7 @@ public class BorrowingServiceImpl implements IBorrowingService {
         book.setSituation(Situation.AVAILABLE);
         bookRepository.save(book);
 
-        DtoBorrowResponse dtoBorrowResponse = borrowingToDtoBorrowResponse(borrowing);
+        DtoBorrowResponse dtoBorrowResponse = borrowingMapper.borrowingToDtoBorrowResponse(borrowing);
 
         if (borrowing.getReturnDate().after(borrowing.getLastReturnDate())){
             dtoBorrowResponse.setPenaltyCost(createPenalty(borrowing).getAmount());
@@ -153,10 +131,11 @@ public class BorrowingServiceImpl implements IBorrowingService {
         return penaltyRepository.save(penalty);
     }
 
-    private void checkOwnership(Borrowing borrowing) {
+    private void checkOwnership(Borrowing borrowing) {      //TODO: look at this exceptions
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        log.warn("Authentication: {}", auth.toString());
         if (auth == null || !auth.isAuthenticated()) {
-            throw new AccessDeniedException("Acces Denied.");
+            throw new AccessDeniedException("Access Denied.");
         }
 
         boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
@@ -166,6 +145,7 @@ public class BorrowingServiceImpl implements IBorrowingService {
 
         Long currentUserId = Long.parseLong(auth.getPrincipal().toString());
         if (!borrowing.getUser().getId().equals(currentUserId)) {
+            log.warn("buraya girmemesi lazımdı: currentUserId: {}, borrowingUserId: {}", currentUserId, borrowing.getUser().getId());
             throw new AccessDeniedException("Acces Denied. You dont have access this entity.");
         }
     }

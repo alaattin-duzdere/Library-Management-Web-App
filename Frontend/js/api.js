@@ -16,6 +16,7 @@ const Api = {
             headers["Authorization"] = `Bearer ${token}`;
         }
 
+        // FormData gönderiyorsak Content-Type'ı sil (tarayıcı otomatik ayarlar)
         if (options.body instanceof FormData) {
             delete headers['Content-Type'];
         }
@@ -51,7 +52,7 @@ const Api = {
 
             const data = await response.json(); 
 
-            return data; 
+            return data;
 
         } catch (error) {
             console.error(`API Hatası (${endpoint}):`, error);
@@ -94,13 +95,12 @@ const Api = {
         return Api.fetch("/api/auth/logout", { method: "POST" });
     },
 
-    // --- Author Endpoints (GÜNCELLENDİ: Pagination ve Search) ---
+    // --- Author Endpoints ---
     getAuthors: (page = 0, size = 20, search = "") => {
         let url = `/api/author?page=${page}&size=${size}`;
         if (search) url += `&search=${encodeURIComponent(search)}`;
         return Api.fetch(url, { method: "GET" });
     },
-    // YENİ: Tek yazar çekmek için (Edit modunda lazım olacak)
     getAuthorById: (id) => {
         return Api.fetch(`/api/author/${id}`, { method: "GET" });
     },
@@ -120,13 +120,12 @@ const Api = {
         return Api.fetch(`/api/admin/author/${id}`, { method: "DELETE" });
     },
 
-    // --- Category Endpoints (GÜNCELLENDİ: Pagination ve Search) ---
+    // --- Category Endpoints ---
     getCategories: (page = 0, size = 20, search = "") => {
         let url = `/api/categories?page=${page}&size=${size}`;
         if (search) url += `&search=${encodeURIComponent(search)}`;
         return Api.fetch(url, { method: "GET" });
     },
-    // YENİ: Tek kategori çekmek için (Edit modunda lazım olacak)
     getCategoryById: (id) => {
         return Api.fetch(`/api/categories/${id}`, { method: "GET" });
     },
@@ -146,8 +145,9 @@ const Api = {
         return Api.fetch(`/api/admin/categories/${id}`, { method: "DELETE" });
     },
 
-    // --- Book Endpoints (Pagination + Search + Filter Destekli) ---
+    // --- Book Endpoints (GÜNCELLENDİ: Admin yolları değişti) ---
     getBooks: (page = 0, size = 12, search = "", categoryId = null, authorId = null) => {
+        // BookController -> getAllBooks
         let url = `/api/books?page=${page}&size=${size}&sort=likeCount,desc`; 
         
         if (search) url += `&search=${encodeURIComponent(search)}`;
@@ -159,42 +159,54 @@ const Api = {
     getBookById: (bookId) => {
         return Api.fetch(`/api/books/${bookId}`, { method: "GET" }); 
     },
+    // GÜNCELLENDİ: /api/books -> /api/admin/books
     createBook: (bookData) => { 
-        return Api.fetch("/api/books", { 
+        return Api.fetch("/api/admin/books", { 
             method: "POST",
             body: JSON.stringify(bookData)
         });
     },
+    // GÜNCELLENDİ: /api/books/{id} -> /api/admin/books/{id}
     updateBook: (id, bookData) => {
-        return Api.fetch(`/api/books/${id}`, {
+        return Api.fetch(`/api/admin/books/${id}`, {
             method: "PUT",
             body: JSON.stringify(bookData)
         });
     },
+    // GÜNCELLENDİ: /api/books/{id} -> /api/admin/books/{id}
     deleteBook: (id) => {
-        return Api.fetch(`/api/books/${id}`, { method: "DELETE" });
+        return Api.fetch(`/api/admin/books/${id}`, { method: "DELETE" });
     },
+    // GÜNCELLENDİ: /{bookId}/upload-photo -> /api/admin/books/{bookId}/upload
     uploadBookImage: (bookId, formData) => {
-        return Api.fetch(`/${bookId}/upload-photo`, { 
+        return Api.fetch(`/api/admin/books/${bookId}/upload`, { 
             method: "POST",
             body: formData 
         });
     },
 
-    // --- Borrowing Endpoints ---
+    // --- Borrowing Endpoints (GÜNCELLENDİ: Admin yolu değişti) ---
     borrowBook: (bookId) => {
-        return Api.fetch(`/api/borrow/${bookId}`, { method: "POST" });
+        return Api.fetch(`/api/borrowings/books/${bookId}`, { method: "POST" });
     },
     returnBook: (borrowingId) => {
-        return Api.fetch(`/api/borrow/return/${borrowingId}`, { method: "POST" });
+        return Api.fetch(`/api/borrowings/${borrowingId}/return`, { method: "POST" });
     },
-    getMyBorrowings: (userId) => {
-        return Api.fetch(`/api/borrow/user/${userId}`, { method: "GET" });
+    getMyBorrowings: (page = 0, size = 10) => {
+        return Api.fetch(`/api/borrowings/me?page=${page}&size=${size}&sort=id,desc`, { method: "GET" });
+    },
+    // GÜNCELLENDİ: /api/borrowings -> /api/admin/borrowings
+    getBorrowings: (page = 0, size = 10, userId = null, bookId = null) => {
+        let url = `/api/admin/borrowings?page=${page}&size=${size}&sort=id,desc`;
+        if (userId) url += `&userId=${userId}`;
+        if (bookId) url += `&bookId=${bookId}`;
+        return Api.fetch(url, { method: "GET" });
     },
 
-    // --- Penalty Endpoints ---
+    // --- Penalty Endpoints (GÜNCELLENDİ: 'my-penalties' -> 'me') ---
     getMyPenalties: () => {
-        return Api.fetch('/api/penalties/my-penalties', { method: "GET" });
+        // PenaltyController -> getMyPenalties -> @GetMapping("/api/penalties/me")
+        return Api.fetch('/api/penalties/me', { method: "GET" });
     },
     payPenalty: (penaltyId, amount) => {
         return Api.fetch('/api/penalties/pay', {
@@ -203,50 +215,39 @@ const Api = {
         });
     },
 
-    // Yorumları Getir (Sayfalı)
+    // --- Comment Endpoints ---
     getCommentsByBook: (bookId, page = 0, size = 10) => {
         return Api.fetch(`/api/comments/book/${bookId}?page=${page}&size=${size}&sort=createTime,desc`, { method: "GET" });
     },
-
-    // Yorum Ekle
     addComment: (commentData) => {
         return Api.fetch('/api/comments', {
             method: "POST",
             body: JSON.stringify(commentData)
         });
     },
-
-    // Yorum Sil (Opsiyonel - Kendi yorumunu silmek için)
     deleteComment: (commentId) => {
         return Api.fetch(`/api/comments/${commentId}`, { method: "DELETE" });
     },
-
-    // Yorum Güncelle
     updateComment: (commentId, content) => {
         return Api.fetch(`/api/comments/${commentId}`, {
             method: "PUT",
             body: JSON.stringify({ content: content })
         });
     },
-
-    // Kullanıcının kendi yorumlarını getirir
     getMyComments: (page = 0, size = 10) => {
         return Api.fetch(`/api/comments/my-comments?page=${page}&size=${size}&sort=createTime,desc`, { method: "GET" });
     },
 
-    // --- BEĞENİ (LIKE) ENDPOINTLERİ ---
+    // --- LIKE ENDPOINTS ---
     toggleLike: (bookId) => {
         return Api.fetch(`/api/likes/${bookId}`, { method: "POST" });
     },
-    
     isBookLiked: (bookId) => {
         return Api.fetch(`/api/likes/${bookId}/check`, { method: "GET" });
     },
-    
     getLikeCount: (bookId) => {
         return Api.fetch(`/api/likes/${bookId}/count`, { method: "GET" });
     },
-    
     getMyFavorites: (page = 0, size = 20) => {
         return Api.fetch(`/api/likes/my-favorites?page=${page}&size=${size}`, { method: "GET" });
     }

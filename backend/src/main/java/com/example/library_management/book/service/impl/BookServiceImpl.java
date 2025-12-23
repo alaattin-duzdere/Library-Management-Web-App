@@ -4,6 +4,7 @@ import com.example.library_management.author.model.Author;
 import com.example.library_management.author.repository.AuthorRepository;
 import com.example.library_management.book.dto.DtoBookRequest;
 import com.example.library_management.book.dto.DtoBookResponse;
+import com.example.library_management.book.mapper.BookMapper;
 import com.example.library_management.book.model.Book;
 import com.example.library_management.book.repository.BookRepository;
 import com.example.library_management.book.service.IBookService;
@@ -20,17 +21,20 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
 @Slf4j
 @Service
+@Transactional
 public class BookServiceImpl implements IBookService {
 
     private final BookRepository bookRepository;
+
+    private final BookMapper bookMapper;
 
     private final AuthorRepository authorRepository;
 
@@ -40,8 +44,9 @@ public class BookServiceImpl implements IBookService {
 
     private final BorrowingRepository borrowingRepository;
 
-    public BookServiceImpl(BookRepository bookRepository, AuthorRepository authorRepository, CategoryRepository categoryRepository, ImageUploadService imageUploadService, BorrowingRepository borrowingRepository) {
+    public BookServiceImpl(BookRepository bookRepository, BookMapper bookMapper, AuthorRepository authorRepository, CategoryRepository categoryRepository, ImageUploadService imageUploadService, BorrowingRepository borrowingRepository) {
         this.bookRepository = bookRepository;
+        this.bookMapper = bookMapper;
         this.authorRepository = authorRepository;
         this.categoryRepository = categoryRepository;
         this.imageUploadService = imageUploadService;
@@ -51,52 +56,14 @@ public class BookServiceImpl implements IBookService {
     @Value("${app.base-url}")
     private String baseUrl;
 
-    private Book createBookFromDto(DtoBookRequest inputDto) {
-        Book book = new Book();
-        BeanUtils.copyProperties(inputDto, book);
-        book.setCreateTime(new Date());
-        book.setLikeCount(0L);
-
-        Set<Long> authors = inputDto.getAuthors();
-        authors.forEach( authorId -> {
-            Author author = authorRepository.findById(authorId).orElseThrow(() -> new ResourceNotFoundException("Author", "id", authorId));
-            book.getAuthors().add(author);
-        });
-
-        Set<Long> categories = inputDto.getCategories();
-        categories.forEach(categoryId -> {
-            Category category = categoryRepository.findById(categoryId).orElseThrow(() -> new ResourceNotFoundException("Category", "id", categoryId));
-            book.getCategories().add(category);
-        });
-
-        return book;
-    }
-
-    public DtoBookResponse createDtoFromBook(Book book) {
-        DtoBookResponse dtoBookResponse = new DtoBookResponse();
-        BeanUtils.copyProperties(book, dtoBookResponse);
-
-        Set<Author> authors = book.getAuthors();
-        authors.forEach(author -> dtoBookResponse.getAuthors().add(author.getId()));
-
-        Set<Category> categories = book.getCategories();
-        categories.forEach(category -> dtoBookResponse.getCategories().add(category.getId()));
-
-        if (book.getImageUrl()!=null){
-            dtoBookResponse.setImageUrl(baseUrl + dtoBookResponse.getImageUrl());
-        }
-
-        return dtoBookResponse;
-    }
-
     @Override
     public DtoBookResponse saveBook(DtoBookRequest dtoBookRequest) {
         if (bookRepository.existsByIsbn(dtoBookRequest.getIsbn())){
             throw new ConflictException("Book", "isbn", dtoBookRequest.getIsbn());
         }
 
-        Book savedBook = bookRepository.save(createBookFromDto(dtoBookRequest));
-        return createDtoFromBook(savedBook);
+        Book savedBook = bookRepository.save(bookMapper.createBookFromDto(dtoBookRequest));
+        return bookMapper.createDtoFromBook(savedBook);
     }
 
     @Override
@@ -107,19 +74,21 @@ public class BookServiceImpl implements IBookService {
         Book book = bookRepository.findById(bookId).orElseThrow(() -> new ResourceNotFoundException("Book", "bookId", bookId));
         String imageUrl = imageUploadService.saveImage(file);
         book.setImageUrl(imageUrl);
-        return createDtoFromBook(bookRepository.save(book));
+        return bookMapper.createDtoFromBook(bookRepository.save(book));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public DtoBookResponse getBookById(Long bookId) {
         Book book = bookRepository.findById(bookId).orElseThrow(() -> new ResourceNotFoundException("Book", "id", bookId));
-        return createDtoFromBook(book);
+        return bookMapper.createDtoFromBook(book);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public DtoBookResponse getBookByIsbn(Long isbn) {
         Book book = bookRepository.findByIsbn(isbn).orElseThrow(() -> new ResourceNotFoundException("Book", "isbn", isbn));
-        return createDtoFromBook(book);
+        return bookMapper.createDtoFromBook(book);
     }
 
 //    @Override
@@ -133,9 +102,10 @@ public class BookServiceImpl implements IBookService {
 //    }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<DtoBookResponse> getAllBooks(Pageable pageable, String search, Long categoryId, Long authorId) {
         Page<Book> bookPage = bookRepository.searchBooks(search, categoryId, authorId, pageable);
-        return bookPage.map(this::createDtoFromBook);
+        return bookPage.map(book -> bookMapper.createDtoFromBook(book));
     }
 
     @Override
@@ -158,7 +128,7 @@ public class BookServiceImpl implements IBookService {
 
         book.setAuthors(authors);
         book.setCategories(categories);
-        return createDtoFromBook(bookRepository.save(book));
+        return bookMapper.createDtoFromBook(bookRepository.save(book));
     }
 
     @Override

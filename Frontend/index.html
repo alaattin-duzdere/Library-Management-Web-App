@@ -24,13 +24,13 @@
         .filter-card {
             border: none; 
             border-radius: 12px; 
-            overflow: visible !important; /* Dropdown'ların dışarı taşmasına izin ver */
-            z-index: 100; /* Diğer elementlerin üstünde durmasını sağla */
+            overflow: visible !important; 
+            z-index: 100; 
             position: relative;
         }
 
         .choices__list--dropdown .choices__list {
-            max-height: 250px; /* Kaydırma çubuğunun çıkması için sınır */
+            max-height: 250px; 
             overflow-y: auto;
             overscroll-behavior: contain;
         }
@@ -234,7 +234,7 @@
             if (userInfo) {
                 CURRENT_USER_ID = userInfo.userId;
                 document.getElementById('nav-username').textContent = userInfo.username;
-                document.getElementById('sidebar-username').textContent = userInfo.username; // Sidebar'daki isim
+                document.getElementById('sidebar-username').textContent = userInfo.username; 
                 if (Auth.hasRole('ADMIN')) document.getElementById('admin-link').classList.remove('d-none');
             } else Auth.logout();
             document.getElementById('logout-button').addEventListener('click', (e) => { e.preventDefault(); Auth.logout(); });
@@ -252,42 +252,34 @@
             window.scrollTo(0,0); setTimeout(() => el.classList.add('d-none'), 4000);
         }
 
-        // --- CHOICES.JS (Filtreler - Sonsuz Kaydırma ve Arama Özellikli) ---
+        // --- CHOICES.JS (Filtreler) ---
         function initChoices() {
-            // -------------------------
-            // 1. KATEGORİ FİLTRESİ
-            // -------------------------
+            // ... (Kategori ve Yazar filtreleri önceki kodunuzla aynı mantıkta kalabilir,
+            // ancak Api.getCategories ve Api.getAuthors dönüş değerleri .content içinde olduğu için kontrol edelim)
+            
+            // 1. KATEGORİ
             categoryChoices = new Choices('#filter-category', {
-                removeItemButton: true,
-                searchEnabled: true,
-                searchChoices: false, // Server-side arama yapacağımız için kapalı
-                placeholder: true,
-                placeholderValue: 'Kategori...',
-                itemSelectText: '',
-                shouldSort: false,
-                renderChoiceLimit: -1,
-                loadingText: 'Yükleniyor...'
+                removeItemButton: true, searchEnabled: true, searchChoices: false, placeholder: true,
+                placeholderValue: 'Kategori...', itemSelectText: '', shouldSort: false, renderChoiceLimit: -1, loadingText: 'Yükleniyor...'
             });
 
-            // Arama Eventi (Debounce ile)
             categoryChoices.passedElement.element.addEventListener('search', debounce(async (event) => {
                 const val = event.detail.value;
                 if (val === categorySearchTerm) return;
-                categorySearchTerm = val;
-                categoryDropdownPage = 0;
-                
-                if (val.length < 2) return; // En az 2 karakter
+                categorySearchTerm = val; categoryDropdownPage = 0;
+                if (val.length < 2) return;
 
                 try {
                     const res = await Api.getCategories(0, 20, val);
+                    // DİKKAT: Backend Page döndürüyor -> res.data.content
                     if (res.success) {
                         const items = (res.data.content || []).map(c => ({ value: c.id, label: c.categoryName }));
-                        categoryChoices.setChoices(items, 'value', 'label', true); // true = listeyi temizle ve yenisini koy
+                        categoryChoices.setChoices(items, 'value', 'label', true);
                     }
                 } catch (e) {}
             }, 500));
-
-            // Dropdown Açılma ve Scroll (Sonsuz Kaydırma)
+            
+            // Sonsuz kaydırma için event listener...
             categoryChoices.passedElement.element.addEventListener('showDropdown', () => {
                 const list = categoryChoices.dropdown.element.querySelector('.choices__list');
                 if (list && !list.hasAttribute('data-scroll')) {
@@ -301,53 +293,35 @@
                                 const res = await Api.getCategories(categoryDropdownPage, 20, categorySearchTerm);
                                 if (res.success && res.data.content.length > 0) {
                                     const items = res.data.content.map(c => ({ value: c.id, label: c.categoryName }));
-                                    categoryChoices.setChoices(items, 'value', 'label', false); // false = mevcut listeye ekle
-                                    
-                                    // Scroll pozisyonunu koru
+                                    categoryChoices.setChoices(items, 'value', 'label', false);
                                     requestAnimationFrame(() => { list.scrollTop = currentScrollPos; });
                                 }
-                            } catch (e) {
-                            } finally {
-                                setTimeout(() => { isCategoryLoading = false; }, 200);
-                            }
+                            } catch (e) {} finally { setTimeout(() => { isCategoryLoading = false; }, 200); }
                         }
                     });
                 }
             });
 
-            // Değişim Eventi (Kitapları Filtrele)
             categoryChoices.passedElement.element.addEventListener('change', (e) => {
                 const newVal = e.detail.value;
                 loadBooks(0, document.getElementById('search-books').value, newVal, currentAuthorId);
             });
 
-
-            // -------------------------
-            // 2. YAZAR FİLTRESİ
-            // -------------------------
+            // 2. YAZAR
             authorChoices = new Choices('#filter-author', {
-                removeItemButton: true,
-                searchEnabled: true,
-                searchChoices: false,
-                placeholder: true,
-                placeholderValue: 'Yazar...',
-                itemSelectText: '',
-                shouldSort: false,
-                renderChoiceLimit: -1,
-                loadingText: 'Yükleniyor...'
+                removeItemButton: true, searchEnabled: true, searchChoices: false, placeholder: true,
+                placeholderValue: 'Yazar...', itemSelectText: '', shouldSort: false, renderChoiceLimit: -1, loadingText: 'Yükleniyor...'
             });
 
-            // Arama Eventi
             authorChoices.passedElement.element.addEventListener('search', debounce(async (event) => {
                 const val = event.detail.value;
                 if (val === authorSearchTerm) return;
-                authorSearchTerm = val;
-                authorDropdownPage = 0;
-                
+                authorSearchTerm = val; authorDropdownPage = 0;
                 if (val.length < 2) return;
 
                 try {
                     const res = await Api.getAuthors(0, 20, val);
+                    // DİKKAT: Backend Page döndürüyor -> res.data.content
                     if (res.success) {
                         const items = (res.data.content || []).map(a => ({ value: a.id, label: `${a.firstName} ${a.lastName}` }));
                         authorChoices.setChoices(items, 'value', 'label', true);
@@ -355,7 +329,6 @@
                 } catch (e) {}
             }, 500));
 
-            // Dropdown Açılma ve Scroll
             authorChoices.passedElement.element.addEventListener('showDropdown', () => {
                 const list = authorChoices.dropdown.element.querySelector('.choices__list');
                 if (list && !list.hasAttribute('data-scroll')) {
@@ -372,16 +345,12 @@
                                     authorChoices.setChoices(items, 'value', 'label', false);
                                     requestAnimationFrame(() => { list.scrollTop = currentScrollPos; });
                                 }
-                            } catch (e) {
-                            } finally {
-                                setTimeout(() => { isAuthorLoading = false; }, 200);
-                            }
+                            } catch (e) {} finally { setTimeout(() => { isAuthorLoading = false; }, 200); }
                         }
                     });
                 }
             });
 
-            // Değişim Eventi
             authorChoices.passedElement.element.addEventListener('change', (e) => {
                 const newVal = e.detail.value;
                 loadBooks(0, document.getElementById('search-books').value, currentCategoryId, newVal);
@@ -390,6 +359,7 @@
 
         async function populateInitialSelects() {
             try {
+                // Backend artık Page<Dto> dönüyor, content dizisini alıyoruz
                 const [cR, aR] = await Promise.all([Api.getCategories(0, 50), Api.getAuthors(0, 50)]);
                 if(cR.success) categoryChoices.setChoices((cR.data.content||[]).map(c=>({value:c.id, label:c.categoryName, selected: c.id==currentCategoryId})), 'value', 'label', true);
                 if(aR.success) authorChoices.setChoices((aR.data.content||[]).map(a=>({value:a.id, label:`${a.firstName} ${a.lastName}`, selected: a.id==currentAuthorId})), 'value', 'label', true);
@@ -415,11 +385,13 @@
             }
 
             try {
+                // api.js'teki yeni parametre sırasına uygun
                 const res = await Api.getBooks(page, pageSize, search, catId, authId);
                 grid.innerHTML = ''; pagEl.innerHTML = ''; grid.style.opacity = '1';
 
                 if(res.success) {
-                    const books = res.data.content || res.data;
+                    // Backend Page<DtoBookResponse> dönüyor
+                    const books = res.data.content || [];
                     if(books.length > 0) {
                         books.forEach(b => grid.appendChild(createBookCard(b)));
                         if(res.data.totalPages) renderPagination(res.data);
@@ -431,10 +403,11 @@
             finally { loading.classList.add('d-none'); }
         }
 
-        // --- YENİ KİTAP KARTI (Tasarım Güncellendi) ---
+        // --- KİTAP KARTI ---
         function createBookCard(book) {
             const col = document.createElement('div'); col.className = 'col';
             const isAvail = book.situation === 'AVAILABLE';
+            // Backend'den imageUrl geliyor, yoksa placeholder
             const img = book.imageUrl || 'https://placehold.co/400x600?text=Kapak';
             
             col.innerHTML = `
@@ -483,20 +456,28 @@
             const list = document.getElementById('borrowings-list');
             const load = document.getElementById('borrowings-loading');
             try {
-                const res = await Api.getMyBorrowings(CURRENT_USER_ID);
+                // Backend artık pageable alıyor (0, 20)
+                const res = await Api.getMyBorrowings(0, 20); 
                 list.innerHTML = '';
-                if(res.success && res.data.length > 0) {
+                
+                // GÜNCELLEME: Backend Page dönüyor -> .content
+                const borrowings = res.data.content || [];
+
+                if(res.success && borrowings.length > 0) {
                     // Sadece iade edilmemişler (aktif)
-                    const active = res.data.filter(i => !i.returnDate);
+                    const active = borrowings.filter(i => !i.returnDate);
+                    
                     if(active.length === 0) {
                         list.innerHTML = '<li class="list-group-item text-center text-muted small py-3">Ödünç kitabınız yok.</li>';
                     } else {
                         active.forEach(i => {
                             const isLate = new Date(i.lastReturnDate) < new Date();
+                            const bookTitle = i.bookTitle || `Kitap ID: ${i.bookId}`;
+
                             list.innerHTML += `
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <div class="fw-bold text-dark" style="font-size:0.85rem;">Kitap ID: ${i.bookId}</div>
+                                    <div style="overflow: hidden;">
+                                        <div class="fw-bold text-dark text-truncate" style="font-size:0.85rem; max-width: 150px;" title="${bookTitle}">${bookTitle}</div>
                                         <small class="${isLate?'text-danger fw-bold':'text-muted'}" style="font-size:0.75rem;">
                                             ${isLate ? 'Gecikmiş!' : new Date(i.lastReturnDate).toLocaleDateString()}
                                         </small>
@@ -505,17 +486,30 @@
                                 </li>`;
                         });
                     }
-                } else list.innerHTML = '<li class="list-group-item text-center text-muted small py-3">Ödünç kitabınız yok.</li>';
-            } catch(e) {} finally { load.classList.add('d-none'); }
+                } else {
+                    list.innerHTML = '<li class="list-group-item text-center text-muted small py-3">Ödünç kitabınız yok.</li>';
+                }
+            } catch(e) { 
+                console.error(e);
+                list.innerHTML = '<li class="list-group-item text-center text-danger small py-3">Veri alınamadı.</li>';
+            } finally { 
+                load.classList.add('d-none'); 
+            }
         }
 
         async function loadMyPenalties() {
             const list = document.getElementById('penalties-list');
             const load = document.getElementById('penalties-loading');
             try {
+                // Backend Page dönüyor
                 const res = await Api.getMyPenalties();
                 list.innerHTML = '';
-                const unpaid = (res.data||[]).filter(p => p.stateOfPenalty !== 'PAID');
+                
+                // GÜNCELLEME: .content kontrolü
+                const penaltiesData = res.data.content || [];
+                
+                const unpaid = penaltiesData.filter(p => p.stateOfPenalty !== 'PAID');
+
                 if(unpaid.length > 0) {
                     unpaid.forEach(p => {
                         list.innerHTML += `
@@ -530,7 +524,9 @@
                 } else {
                     list.innerHTML = '<li class="list-group-item text-center text-success small py-3"><i class="bi bi-emoji-smile"></i> Borcunuz yok.</li>';
                 }
-            } catch(e){} finally { load.classList.add('d-none'); }
+            } catch(e){
+                console.error(e);
+            } finally { load.classList.add('d-none'); }
         }
 
         async function quickPay(id, amt) {
@@ -543,7 +539,6 @@
             const el = document.getElementById('pagination-controls'); el.innerHTML = '';
             if(info.totalPages<=1) return;
             
-            // loadBooks'u referans almak için window.loadRef kullanıyoruz (HTML string içinde çağırmak için)
             window.loadRef = (p) => loadBooks(p, currentSearchQuery, currentCategoryId, currentAuthorId);
             
             const btn = (lbl, p, act, dis) => {
