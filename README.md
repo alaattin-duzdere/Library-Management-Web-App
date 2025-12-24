@@ -11,9 +11,7 @@ Modern, güvenli ve ölçeklenebilir bir **Kütüphane Yönetim Sistemi**. Bu pr
 
 
 * 🔐 **JWT + Redis Blacklist** ile güvenli ve stateless authentication
-* ⚡ **Redis Cache** ile performans optimizasyonu
 * 🧱 **Spring Boot 3 & Java 17** ile clean, katmanlı mimari
-* 📦 **Docker-ready** altyapı
 * 📊 **Pagination, RBAC, Async Mail, File Upload** gibi gerçek dünya senaryoları
 
 ---
