@@ -3,9 +3,9 @@ package com.example.library_management.book.controller;
 import com.example.library_management.api.CustomResponseBody;
 import com.example.library_management.book.dto.DtoBookRequest;
 import com.example.library_management.book.dto.DtoBookResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -20,7 +20,7 @@ public interface IBookController {
 
     ResponseEntity<CustomResponseBody<DtoBookResponse>> getBookByIsbn(Long isbn);
 
-    ResponseEntity<CustomResponseBody<List<DtoBookResponse>>> getAllBooks();
+    ResponseEntity<CustomResponseBody<Page<DtoBookResponse>>> getAllBooks(Pageable pageable,String search, Long categoryId, Long authorId);
 
     ResponseEntity<CustomResponseBody<DtoBookResponse>> updateBook(Long bookId, DtoBookRequest dtoBookRequest);
 

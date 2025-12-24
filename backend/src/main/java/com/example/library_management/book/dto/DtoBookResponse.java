@@ -2,6 +2,7 @@ package com.example.library_management.book.dto;
 
 import com.example.library_management.book.model.Situation;
 import jakarta.annotation.Nullable;
+import jakarta.persistence.Column;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -21,6 +22,10 @@ public class DtoBookResponse {
     private Set<Long> authors = new HashSet<>();
 
     private Set<Long> categories = new HashSet<>();
+
+    private Long likeCount;
+
+    private Long commentCount;
 
     private int numberOfPages;
 

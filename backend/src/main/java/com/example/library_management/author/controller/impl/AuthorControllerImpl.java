@@ -6,6 +6,11 @@ import com.example.library_management.author.dto.DtoAuthorRequest;
 import com.example.library_management.author.dto.DtoAuthorResponse;
 import com.example.library_management.author.service.IAuthorService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -37,8 +42,11 @@ public class AuthorControllerImpl implements IAuthorController {
 
     @GetMapping("/api/author")
     @Override
-    public ResponseEntity<CustomResponseBody<List<DtoAuthorResponse>>> getAllAuthors() {
-        CustomResponseBody<List<DtoAuthorResponse>> body = CustomResponseBody.ok(authorService.getAllAuthors(), "Authors retrieved successfully");
+    public ResponseEntity<CustomResponseBody<Page<DtoAuthorResponse>>> getAllAuthors(
+            @PageableDefault(page = 0, size = 10, sort = "firstName", direction = Sort.Direction.ASC) Pageable pageable, // Default pagination
+            @RequestParam(value = "search", required = false) String search
+    ) {
+        CustomResponseBody<Page<DtoAuthorResponse>> body = CustomResponseBody.ok(authorService.getAllAuthors(search,pageable), "Authors retrieved successfully");
         return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
     }
 

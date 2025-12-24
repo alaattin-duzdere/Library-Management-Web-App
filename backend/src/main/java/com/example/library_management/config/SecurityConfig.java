@@ -49,6 +49,9 @@ public class SecurityConfig {
     @Value("${api.auth.register}")
     private String registerEndpoint ;
 
+    @Value("${api.auth.resend-verification}")
+    private String resendVerificationEndpoint;
+
     @Value("${api.auth.login}")
     private String loginEndpoint ;
 
@@ -73,7 +76,8 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/api/auth/reset-password-submit",registerEndpoint,loginEndpoint,refreshEndpoint,verifyEndpoint,forgotPasswordEndpoint, resetPasswordHandlerEndpoint, passwordResetEndpoint).permitAll()
+                        .requestMatchers(passwordResetEndpoint,registerEndpoint,resendVerificationEndpoint,loginEndpoint,refreshEndpoint,verifyEndpoint,forgotPasswordEndpoint, resetPasswordHandlerEndpoint, passwordResetEndpoint).permitAll()
+                        .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
                         .requestMatchers("/media/images/**").permitAll()
                         .requestMatchers("/swagger-ui/**",
                                 "/v3/api-docs/**",
@@ -100,7 +104,8 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:3000",
                 "http://localhost:3001",
-                "http://10.155.186.94:3000" // Your frontend IP:port
+                "http://10.155.186.94:3000",
+                "http://127.0.0.1:5500"// Your frontend IP:port
         ));
 
         // 2. Allow all headers
@@ -111,6 +116,9 @@ public class SecurityConfig {
 
         // 4. Allow credentials (if using cookies/sessions)
         configuration.setAllowCredentials(true);
+
+        // Tarayıcıya bu ayarları 1 saat (3600 sn) boyunca sorma diyoruz.
+        configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration); // Apply to all paths

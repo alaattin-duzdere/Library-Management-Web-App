@@ -6,11 +6,13 @@ import com.example.library_management.category.dto.DtoCategoryRequest;
 import com.example.library_management.category.dto.DtoCategoryResponse;
 import com.example.library_management.category.service.ICategoryService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 public class CategoryControllerImpl implements ICategoryController {
@@ -30,8 +32,13 @@ public class CategoryControllerImpl implements ICategoryController {
 
     @GetMapping("/api/categories")
     @Override
-    public ResponseEntity<CustomResponseBody<List<DtoCategoryResponse>>> getAllCategories() {
-        CustomResponseBody<List<DtoCategoryResponse>> body = CustomResponseBody.ok(categoryService.getAllCategories(), " Categories retrieved successfully");
+    public ResponseEntity<CustomResponseBody<Page<DtoCategoryResponse>>> getAllCategories(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "search", required = false) String search
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("categoryName").ascending());
+        CustomResponseBody<Page<DtoCategoryResponse>> body = CustomResponseBody.ok(categoryService.getAllCategories(search,pageable), " Categories retrieved successfully");
         return new ResponseEntity<>(body, HttpStatusCode.valueOf(body.getHttpStatus()));
     }
 

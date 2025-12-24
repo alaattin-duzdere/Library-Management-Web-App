@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kütüphane - Ana Sayfa</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+    <link rel="stylesheet" href="css/style.css">
+    
+    <script src="js/auth.js"></script>
+    <script>
+        if (!Auth.isLoggedIn()) { window.location.href = '/login.html'; }
+    </script>
+    <style>
+        body { background-color: #f3f4f6; }
+
+        .sidebar-card, .content-card {
+            border: none; border-radius: 12px; overflow: hidden;
+        }
+
+        /* Filter card için overflow: visible OLMALI */
+        .filter-card {
+            border: none; 
+            border-radius: 12px; 
+            overflow: visible !important; 
+            z-index: 100; 
+            position: relative;
+        }
+
+        .choices__list--dropdown .choices__list {
+            max-height: 250px; 
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+        
+        /* Sol Menü Başlıkları */
+        .sidebar-header {
+            font-size: 0.9rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+            color: #adb5bd; margin-bottom: 10px; padding-left: 5px;
+        }
+
+        /* Kitap Kartı Tasarımı */
+        .book-card {
+            border: none; border-radius: 12px; transition: all 0.3s ease; background: #fff;
+        }
+        .book-card:hover {
+            transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
+        }
+        .book-cover {
+            height: 280px; object-fit: cover; border-top-left-radius: 12px; border-top-right-radius: 12px;
+            width: 100%;
+        }
+        .book-title {
+            font-weight: 600; color: #212529; display: -webkit-box; -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical; overflow: hidden; height: 2.5em; line-height: 1.25em; margin-bottom: 0.5rem;
+        }
+        
+        /* Filtre Alanı */
+        .choices__inner {
+            border: 1px solid #dee2e6; background-color: #fff; border-radius: 8px; min-height: 40px;
+        }
+        .search-input-group .input-group-text {
+            background-color: #fff; border: 1px solid #dee2e6; border-right: none; border-radius: 8px 0 0 8px;
+        }
+        .search-input-group .form-control {
+            border-left: none; border-radius: 0 8px 8px 0; border-color: #dee2e6;
+        }
+        .search-input-group .form-control:focus {
+            box-shadow: none; border-color: #dee2e6;
+        }
+        
+        /* List Group Özelleştirme */
+        .custom-list-group .list-group-item {
+            border: none; border-bottom: 1px solid #f0f0f0; padding: 12px 15px; font-size: 0.9rem;
+        }
+        .custom-list-group .list-group-item:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/index.html"><i class="bi bi-book-half"></i> Kütüphane</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item me-2"><a class="nav-link active" href="/index.html">Kitaplar</a></li>
+                    <li class="nav-item me-2 d-none" id="admin-link"><a class="nav-link" href="/admin.html">Yönetim</a></li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown">
+                            <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                <i class="bi bi-person-fill"></i>
+                            </div>
+                            <span id="nav-username">...</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow">
+                            <li><a class="dropdown-item" href="/profile.html"><i class="bi bi-person me-2"></i>Profilim</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" id="logout-button"><i class="bi bi-box-arrow-right me-2"></i>Çıkış</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <div id="action-alert" class="alert d-none shadow-sm border-0" role="alert"></div>
+
+        <div class="row g-4">
+            <div class="col-lg-3">
+                <div class="d-none d-lg-block mb-4">
+                    <h6 class="sidebar-header">Hesabım</h6>
+                    <div class="card sidebar-card shadow-sm bg-white">
+                        <div class="card-body d-flex align-items-center gap-3">
+                            <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 1.2rem;">
+                                <i class="bi bi-person"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 fw-bold" id="sidebar-username">...</h6>
+                                <small class="text-muted">Hoşgeldiniz</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="sidebar-header text-danger"><i class="bi bi-exclamation-circle"></i> Cezalarım</h6>
+                <div class="card sidebar-card shadow-sm bg-white mb-4">
+                    <div id="penalties-loading" class="text-center p-3"><div class="spinner-border spinner-border-sm text-danger"></div></div>
+                    <ul class="list-group list-group-flush custom-list-group" id="penalties-list"></ul>
+                </div>
+
+                <h6 class="sidebar-header text-primary"><i class="bi bi-journal-bookmark"></i> Elimdekiler</h6>
+                <div class="card sidebar-card shadow-sm bg-white mb-4">
+                    <div id="borrowings-loading" class="text-center p-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+                    <ul class="list-group list-group-flush custom-list-group" id="borrowings-list"></ul>
+                </div>
+            </div>
+
+            <div class="col-lg-9">
+                
+                <div class="card filter-card shadow-sm bg-white mb-4">
+                    <div class="card-body p-3">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-md-5">
+                                <div class="input-group search-input-group">
+                                    <span class="input-group-text bg-transparent text-muted"><i class="bi bi-search"></i></span>
+                                    <input type="text" id="search-books" class="form-control" placeholder="Kitap ara...">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-control" id="filter-category"></select>
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-control" id="filter-author"></select>
+                            </div>
+                            <div class="col-md-1">
+                                <button class="btn btn-light w-100 border" id="btn-clear-filters" title="Temizle" style="height: 40px; border-radius: 8px;">
+                                    <i class="bi bi-x-lg text-secondary"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="books-loading" class="text-center p-5">
+                    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+                    <p class="mt-2 text-muted">Kütüphane taranıyor...</p>
+                </div>
+
+                <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 g-4" id="books-grid"></div>
+
+                <nav class="mt-5 mb-5">
+                    <ul class="pagination justify-content-center" id="pagination-controls"></ul>
+                </nav>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script src="js/api.js"></script>
+    
+    <script>
+        // --- DEĞİŞKENLER & SETUP ---
+        let CURRENT_USER_ID = null;
+        const urlParams = new URLSearchParams(window.location.search);
+        let currentPage = parseInt(urlParams.get('page')) || 0;
+        let currentSearchQuery = urlParams.get('search') || "";
+        let currentCategoryId = urlParams.get('categoryId') || "";
+        let currentAuthorId = urlParams.get('authorId') || "";
+        const pageSize = 12;
+
+        let authorChoices = null, categoryChoices = null;
+        let authorSearchTerm = "", categorySearchTerm = "";
+        let authorDropdownPage = 0, categoryDropdownPage = 0;
+        let isAuthorLoading = false, isCategoryLoading = false;
+
+        const debounce = (func, wait) => {
+            let timeout; return function(...args) { const ctx = this; clearTimeout(timeout); timeout = setTimeout(() => func.apply(ctx, args), wait); };
+        };
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            setupNavbar();
+            if(currentSearchQuery) document.getElementById('search-books').value = currentSearchQuery;
+            
+            initChoices();
+            populateInitialSelects();
+
+            // Event Listeners
+            document.getElementById('search-books').addEventListener('input', debounce((e) => {
+                const val = e.target.value.trim();
+                if (val !== currentSearchQuery) loadBooks(0, val, currentCategoryId, currentAuthorId);
+            }, 500));
+            
+            document.getElementById('btn-clear-filters').addEventListener('click', () => {
+                document.getElementById('search-books').value = "";
+                if(authorChoices) authorChoices.removeActiveItems();
+                if(categoryChoices) categoryChoices.removeActiveItems();
+                loadBooks(0, "", "", "");
+            });
+
+            if(CURRENT_USER_ID) loadAllData();
+        });
+
+        // --- NAVBAR & AUTH ---
+        function setupNavbar() {
+            const userInfo = Auth.getUserInfo();
+            if (userInfo) {
+                CURRENT_USER_ID = userInfo.userId;
+                document.getElementById('nav-username').textContent = userInfo.username;
+                document.getElementById('sidebar-username').textContent = userInfo.username; 
+                if (Auth.hasRole('ADMIN')) document.getElementById('admin-link').classList.remove('d-none');
+            } else Auth.logout();
+            document.getElementById('logout-button').addEventListener('click', (e) => { e.preventDefault(); Auth.logout(); });
+        }
+
+        function loadAllData() {
+            loadBooks(currentPage, currentSearchQuery, currentCategoryId, currentAuthorId); 
+            loadMyBorrowings();
+            loadMyPenalties();
+        }
+
+        function showAlert(msg, type='success') {
+            const el = document.getElementById('action-alert');
+            el.textContent = msg; el.className = `alert alert-${type} shadow-sm border-0`; el.classList.remove('d-none');
+            window.scrollTo(0,0); setTimeout(() => el.classList.add('d-none'), 4000);
+        }
+
+        // --- CHOICES.JS (Filtreler) ---
+        function initChoices() {
+            // ... (Kategori ve Yazar filtreleri önceki kodunuzla aynı mantıkta kalabilir,
+            // ancak Api.getCategories ve Api.getAuthors dönüş değerleri .content içinde olduğu için kontrol edelim)
+            
+            // 1. KATEGORİ
+            categoryChoices = new Choices('#filter-category', {
+                removeItemButton: true, searchEnabled: true, searchChoices: false, placeholder: true,
+                placeholderValue: 'Kategori...', itemSelectText: '', shouldSort: false, renderChoiceLimit: -1, loadingText: 'Yükleniyor...'
+            });
+
+            categoryChoices.passedElement.element.addEventListener('search', debounce(async (event) => {
+                const val = event.detail.value;
+                if (val === categorySearchTerm) return;
+                categorySearchTerm = val; categoryDropdownPage = 0;
+                if (val.length < 2) return;
+
+                try {
+                    const res = await Api.getCategories(0, 20, val);
+                    // DİKKAT: Backend Page döndürüyor -> res.data.content
+                    if (res.success) {
+                        const items = (res.data.content || []).map(c => ({ value: c.id, label: c.categoryName }));
+                        categoryChoices.setChoices(items, 'value', 'label', true);
+                    }
+                } catch (e) {}
+            }, 500));
+            
+            // Sonsuz kaydırma için event listener...
+            categoryChoices.passedElement.element.addEventListener('showDropdown', () => {
+                const list = categoryChoices.dropdown.element.querySelector('.choices__list');
+                if (list && !list.hasAttribute('data-scroll')) {
+                    list.setAttribute('data-scroll', 'true');
+                    list.addEventListener('scroll', async (e) => {
+                        if (list.scrollTop + list.clientHeight >= list.scrollHeight - 100 && !isCategoryLoading) {
+                            isCategoryLoading = true;
+                            const currentScrollPos = list.scrollTop;
+                            categoryDropdownPage++;
+                            try {
+                                const res = await Api.getCategories(categoryDropdownPage, 20, categorySearchTerm);
+                                if (res.success && res.data.content.length > 0) {
+                                    const items = res.data.content.map(c => ({ value: c.id, label: c.categoryName }));
+                                    categoryChoices.setChoices(items, 'value', 'label', false);
+                                    requestAnimationFrame(() => { list.scrollTop = currentScrollPos; });
+                                }
+                            } catch (e) {} finally { setTimeout(() => { isCategoryLoading = false; }, 200); }
+                        }
+                    });
+                }
+            });
+
+            categoryChoices.passedElement.element.addEventListener('change', (e) => {
+                const newVal = e.detail.value;
+                loadBooks(0, document.getElementById('search-books').value, newVal, currentAuthorId);
+            });
+
+            // 2. YAZAR
+            authorChoices = new Choices('#filter-author', {
+                removeItemButton: true, searchEnabled: true, searchChoices: false, placeholder: true,
+                placeholderValue: 'Yazar...', itemSelectText: '', shouldSort: false, renderChoiceLimit: -1, loadingText: 'Yükleniyor...'
+            });
+
+            authorChoices.passedElement.element.addEventListener('search', debounce(async (event) => {
+                const val = event.detail.value;
+                if (val === authorSearchTerm) return;
+                authorSearchTerm = val; authorDropdownPage = 0;
+                if (val.length < 2) return;
+
+                try {
+                    const res = await Api.getAuthors(0, 20, val);
+                    // DİKKAT: Backend Page döndürüyor -> res.data.content
+                    if (res.success) {
+                        const items = (res.data.content || []).map(a => ({ value: a.id, label: `${a.firstName} ${a.lastName}` }));
+                        authorChoices.setChoices(items, 'value', 'label', true);
+                    }
+                } catch (e) {}
+            }, 500));
+
+            authorChoices.passedElement.element.addEventListener('showDropdown', () => {
+                const list = authorChoices.dropdown.element.querySelector('.choices__list');
+                if (list && !list.hasAttribute('data-scroll')) {
+                    list.setAttribute('data-scroll', 'true');
+                    list.addEventListener('scroll', async (e) => {
+                        if (list.scrollTop + list.clientHeight >= list.scrollHeight - 100 && !isAuthorLoading) {
+                            isAuthorLoading = true;
+                            const currentScrollPos = list.scrollTop;
+                            authorDropdownPage++;
+                            try {
+                                const res = await Api.getAuthors(authorDropdownPage, 20, authorSearchTerm);
+                                if (res.success && res.data.content.length > 0) {
+                                    const items = res.data.content.map(a => ({ value: a.id, label: `${a.firstName} ${a.lastName}` }));
+                                    authorChoices.setChoices(items, 'value', 'label', false);
+                                    requestAnimationFrame(() => { list.scrollTop = currentScrollPos; });
+                                }
+                            } catch (e) {} finally { setTimeout(() => { isAuthorLoading = false; }, 200); }
+                        }
+                    });
+                }
+            });
+
+            authorChoices.passedElement.element.addEventListener('change', (e) => {
+                const newVal = e.detail.value;
+                loadBooks(0, document.getElementById('search-books').value, currentCategoryId, newVal);
+            });
+        }
+
+        async function populateInitialSelects() {
+            try {
+                // Backend artık Page<Dto> dönüyor, content dizisini alıyoruz
+                const [cR, aR] = await Promise.all([Api.getCategories(0, 50), Api.getAuthors(0, 50)]);
+                if(cR.success) categoryChoices.setChoices((cR.data.content||[]).map(c=>({value:c.id, label:c.categoryName, selected: c.id==currentCategoryId})), 'value', 'label', true);
+                if(aR.success) authorChoices.setChoices((aR.data.content||[]).map(a=>({value:a.id, label:`${a.firstName} ${a.lastName}`, selected: a.id==currentAuthorId})), 'value', 'label', true);
+            } catch(e){}
+        }
+
+        // --- KİTAP LİSTELEME ---
+        async function loadBooks(page, search="", catId="", authId="", updateUrl=true) {
+            const grid = document.getElementById('books-grid');
+            const loading = document.getElementById('books-loading');
+            const pagEl = document.getElementById('pagination-controls');
+            
+            grid.style.opacity = '0.3'; 
+            
+            if(updateUrl) {
+                const u = new URL(window.location);
+                u.searchParams.set('page', page);
+                search ? u.searchParams.set('search', search) : u.searchParams.delete('search');
+                catId ? u.searchParams.set('categoryId', catId) : u.searchParams.delete('categoryId');
+                authId ? u.searchParams.set('authorId', authId) : u.searchParams.delete('authorId');
+                window.history.pushState({}, '', u);
+                currentPage=page; currentSearchQuery=search; currentCategoryId=catId; currentAuthorId=authId;
+            }
+
+            try {
+                // api.js'teki yeni parametre sırasına uygun
+                const res = await Api.getBooks(page, pageSize, search, catId, authId);
+                grid.innerHTML = ''; pagEl.innerHTML = ''; grid.style.opacity = '1';
+
+                if(res.success) {
+                    // Backend Page<DtoBookResponse> dönüyor
+                    const books = res.data.content || [];
+                    if(books.length > 0) {
+                        books.forEach(b => grid.appendChild(createBookCard(b)));
+                        if(res.data.totalPages) renderPagination(res.data);
+                    } else {
+                        grid.innerHTML = `<div class="col-12 text-center py-5 text-muted"><i class="bi bi-search display-4 opacity-25"></i><p class="mt-3">Aradığınız kriterlere uygun kitap bulunamadı.</p></div>`;
+                    }
+                }
+            } catch(e) { showAlert('Kitaplar yüklenirken hata oluştu.', 'danger'); } 
+            finally { loading.classList.add('d-none'); }
+        }
+
+        // --- KİTAP KARTI ---
+        function createBookCard(book) {
+            const col = document.createElement('div'); col.className = 'col';
+            const isAvail = book.situation === 'AVAILABLE';
+            // Backend'den imageUrl geliyor, yoksa placeholder
+            const img = book.imageUrl || 'https://placehold.co/400x600?text=Kapak';
+            
+            col.innerHTML = `
+                <div class="card h-100 book-card shadow-sm">
+                    <div class="position-relative">
+                        <a href="/book-detail.html?id=${book.id}">
+                            <img src="${img}" class="book-cover" alt="${book.title}">
+                        </a>
+                        <div class="position-absolute top-0 end-0 p-2">
+                             <span class="badge ${isAvail ? 'bg-success' : 'bg-danger'} shadow-sm">${isAvail ? 'Mevcut' : 'Dolu'}</span>
+                        </div>
+                    </div>
+                    <div class="card-body d-flex flex-column p-3">
+                        <h5 class="book-title" title="${book.title}">
+                            <a href="/book-detail.html?id=${book.id}" class="text-decoration-none text-dark stretched-link">${book.title}</a>
+                        </h5>
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-auto mb-3">
+                            <small class="text-muted"><i class="bi bi-chat-text"></i> ${book.commentCount||0}</small>
+                            <small class="text-muted"><i class="bi bi-heart-fill text-danger"></i> ${book.likeCount||0}</small>
+                        </div>
+                        
+                        <button class="btn btn-sm ${isAvail ? 'btn-outline-primary' : 'btn-light text-muted'} w-100 position-relative z-2 btn-action" 
+                                data-id="${book.id}" ${!isAvail?'disabled':''}>
+                            ${isAvail ? 'Ödünç Al' : 'Detayları Gör'}
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            const btn = col.querySelector('.btn-action');
+            btn.onclick = (e) => {
+                e.preventDefault(); e.stopPropagation();
+                if(isAvail) handleBorrow(book.id); else window.location.href=`/book-detail.html?id=${book.id}`;
+            };
+            return col;
+        }
+
+        async function handleBorrow(id) {
+            if(!confirm('Ödünç almak istiyor musunuz?')) return;
+            try { const r = await Api.borrowBook(id); if(r.success) { showAlert('Kitap ödünç alındı!'); loadAllData(); } else showAlert(r.message, 'danger'); } catch(e){ showAlert('Hata', 'danger'); }
+        }
+
+        // --- SIDEBAR: ÖDÜNÇLER VE CEZALAR ---
+        async function loadMyBorrowings() {
+            const list = document.getElementById('borrowings-list');
+            const load = document.getElementById('borrowings-loading');
+            try {
+                // Backend artık pageable alıyor (0, 20)
+                const res = await Api.getMyBorrowings(0, 20); 
+                list.innerHTML = '';
+                
+                // GÜNCELLEME: Backend Page dönüyor -> .content
+                const borrowings = res.data.content || [];
+
+                if(res.success && borrowings.length > 0) {
+                    // Sadece iade edilmemişler (aktif)
+                    const active = borrowings.filter(i => !i.returnDate);
+                    
+                    if(active.length === 0) {
+                        list.innerHTML = '<li class="list-group-item text-center text-muted small py-3">Ödünç kitabınız yok.</li>';
+                    } else {
+                        active.forEach(i => {
+                            const isLate = new Date(i.lastReturnDate) < new Date();
+                            const bookTitle = i.bookTitle || `Kitap ID: ${i.bookId}`;
+
+                            list.innerHTML += `
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div style="overflow: hidden;">
+                                        <div class="fw-bold text-dark text-truncate" style="font-size:0.85rem; max-width: 150px;" title="${bookTitle}">${bookTitle}</div>
+                                        <small class="${isLate?'text-danger fw-bold':'text-muted'}" style="font-size:0.75rem;">
+                                            ${isLate ? 'Gecikmiş!' : new Date(i.lastReturnDate).toLocaleDateString()}
+                                        </small>
+                                    </div>
+                                    <a href="/book-detail.html?id=${i.bookId}" class="btn btn-light btn-sm border py-0 px-2" title="Git"><i class="bi bi-chevron-right"></i></a>
+                                </li>`;
+                        });
+                    }
+                } else {
+                    list.innerHTML = '<li class="list-group-item text-center text-muted small py-3">Ödünç kitabınız yok.</li>';
+                }
+            } catch(e) { 
+                console.error(e);
+                list.innerHTML = '<li class="list-group-item text-center text-danger small py-3">Veri alınamadı.</li>';
+            } finally { 
+                load.classList.add('d-none'); 
+            }
+        }
+
+        async function loadMyPenalties() {
+            const list = document.getElementById('penalties-list');
+            const load = document.getElementById('penalties-loading');
+            try {
+                // Backend Page dönüyor
+                const res = await Api.getMyPenalties();
+                list.innerHTML = '';
+                
+                // GÜNCELLEME: .content kontrolü
+                const penaltiesData = res.data.content || [];
+                
+                const unpaid = penaltiesData.filter(p => p.stateOfPenalty !== 'PAID');
+
+                if(unpaid.length > 0) {
+                    unpaid.forEach(p => {
+                        list.innerHTML += `
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-danger bg-opacity-10">
+                                <div>
+                                    <span class="text-danger fw-bold">${p.amount} TL</span>
+                                    <br><small class="text-danger opacity-75" style="font-size:0.7rem;">ID: ${p.penaltyId}</small>
+                                </div>
+                                <button onclick="quickPay(${p.penaltyId}, ${p.amount})" class="btn btn-danger btn-sm py-0 px-2" style="font-size:0.8rem;">Öde</button>
+                            </li>`;
+                    });
+                } else {
+                    list.innerHTML = '<li class="list-group-item text-center text-success small py-3"><i class="bi bi-emoji-smile"></i> Borcunuz yok.</li>';
+                }
+            } catch(e){
+                console.error(e);
+            } finally { load.classList.add('d-none'); }
+        }
+
+        async function quickPay(id, amt) {
+            if(!confirm(`${amt} TL ödensin mi?`)) return;
+            try { const r = await Api.payPenalty(id, amt); if(r.success) { showAlert('Ödendi!'); loadMyPenalties(); } else showAlert(r.message, 'danger'); } catch(e){}
+        }
+
+        // --- PAGINATION ---
+        function renderPagination(info) {
+            const el = document.getElementById('pagination-controls'); el.innerHTML = '';
+            if(info.totalPages<=1) return;
+            
+            window.loadRef = (p) => loadBooks(p, currentSearchQuery, currentCategoryId, currentAuthorId);
+            
+            const btn = (lbl, p, act, dis) => {
+                const li = document.createElement('li'); li.className = `page-item ${act?'active':''} ${dis?'disabled':''}`;
+                li.innerHTML = `<button class="page-link shadow-none" onclick="window.loadRef(${p})">${lbl}</button>`;
+                return li;
+            };
+            
+            el.appendChild(btn('«', info.number-1, false, info.first));
+            for(let i=0; i<info.totalPages; i++) {
+                if(i===0 || i===info.totalPages-1 || Math.abs(i-info.number)<=1) el.appendChild(btn(i+1, i, i===info.number, false));
+                else if(el.lastChild.innerText!=='...') { const l=document.createElement('li'); l.className='page-item disabled'; l.innerHTML='<span class="page-link border-0 bg-transparent">...</span>'; el.appendChild(l); }
+            }
+            el.appendChild(btn('»', info.number+1, false, info.last));
+        }
+    </script>
+</body>
+</html>

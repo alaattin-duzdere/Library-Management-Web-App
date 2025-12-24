@@ -2,6 +2,8 @@ package com.example.library_management.author.service;
 
 import com.example.library_management.author.dto.DtoAuthorRequest;
 import com.example.library_management.author.dto.DtoAuthorResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -10,7 +12,7 @@ public interface IAuthorService {
 
     DtoAuthorResponse getAuthorById(Long id);
 
-    List<DtoAuthorResponse> getAllAuthors();
+    Page<DtoAuthorResponse> getAllAuthors(String query, Pageable pageable);
 
     DtoAuthorResponse updateAuthor(Long id, DtoAuthorRequest input);
 

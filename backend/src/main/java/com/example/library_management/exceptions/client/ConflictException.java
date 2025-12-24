@@ -9,7 +9,6 @@ public class ConflictException extends BaseApiException {
         super(ApiStatus.ERROR_CONFLICT, message);
     }
 
-    // Daha dinamik bir mesaj oluşturmak için
     public ConflictException(String resourceName, String field, Object value) {
         super(ApiStatus.ERROR_CONFLICT, String.format("%s with %s '%s' already exists.", resourceName, field, value));
     }

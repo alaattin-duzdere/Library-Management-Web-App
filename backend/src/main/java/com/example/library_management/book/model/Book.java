@@ -2,6 +2,7 @@ package com.example.library_management.book.model;
 
 import com.example.library_management.author.model.Author;
 import com.example.library_management.category.model.Category;
+import com.example.library_management.comment.model.Comment;
 import com.example.library_management.common.model.BaseEntity;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
@@ -9,6 +10,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -19,6 +22,8 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
+@SQLDelete(sql = "UPDATE \"library-management\".book SET situation = 'DELETED' WHERE id = ?") // 1. Silme işlemi gerçekleştiğinde kaydı fiziksel olarak silmek yerine durumunu 'DELETED' olarak günceller
+@SQLRestriction("situation <> 'DELETED'")  // 2. Tüm sorgularda silinmiş kayıtları hariç tutar
 public class Book extends BaseEntity {
 
     @Column(name="title")
@@ -33,6 +38,15 @@ public class Book extends BaseEntity {
     @ManyToMany
     private Set<Category> categories = new HashSet<>();
 
+    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Comment> comments = new HashSet<>();
+
+    @Column(name="like_count",nullable = false,columnDefinition = "bigint default 0")
+    private long likeCount = 0L;
+
+    @Column(name="comment_count",nullable = false,columnDefinition = "bigint default 0")
+    private long commentCount = 0L;
+
     @Column(name="number_of_pages")
     private int numberOfPages;
 
@@ -43,5 +57,13 @@ public class Book extends BaseEntity {
     @Column(name="situation")
     @Enumerated(EnumType.STRING)
     private Situation situation = Situation.AVAILABLE;
+
+    // Helper methods for comments
+    public void addComment(Comment comment) {
+        this.comments.add(comment);
+    }
+    public void removeComment(Comment comment) {
+        this.comments.remove(comment);
+    }
 
 }

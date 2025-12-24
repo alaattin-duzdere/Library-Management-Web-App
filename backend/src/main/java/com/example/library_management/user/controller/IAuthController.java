@@ -4,10 +4,13 @@ import com.example.library_management.api.CustomResponseBody;
 import com.example.library_management.user.dto.*;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.view.RedirectView;
 
 public interface IAuthController {
 
     ResponseEntity<CustomResponseBody<DtoUser>> register(RegisterRequest registerRequest);
+
+    ResponseEntity<CustomResponseBody<String>> resendVerification(ForgotPasswordRequest emailRequest);
 
     ResponseEntity<CustomResponseBody<LoginResponse>> login(LoginRequest input);
 
@@ -15,7 +18,7 @@ public interface IAuthController {
 
     ResponseEntity<CustomResponseBody<LoginResponse>>refreshToken(RefreshTokenRequest input);
 
-    ResponseEntity<CustomResponseBody<String>> verifyUser(String token);
+    RedirectView verifyUser(String token);
 
     public ResponseEntity<CustomResponseBody<String>> forgotPassword(ForgotPasswordRequest input);
 

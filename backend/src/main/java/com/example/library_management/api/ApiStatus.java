@@ -22,6 +22,7 @@ public enum ApiStatus {
     // Resource Errors
     ERROR_RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "E404-RES", "The requested resource was not found."),
     ERROR_CONFLICT(HttpStatus.CONFLICT, "E409-CON", "Resource already exists or state prevents action."),
+    ERROR_DATA_INTEGRITY_VIOLATION(HttpStatus.CONFLICT, "E409-DATA", "Data integrity violation."),
 
     // Authentication/Authorization Errors
     ERROR_UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "E401-AUTH", "Authentication is required or has failed."),

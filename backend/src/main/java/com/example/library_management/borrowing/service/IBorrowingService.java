@@ -1,15 +1,13 @@
 package com.example.library_management.borrowing.service;
 
 import com.example.library_management.borrowing.dto.DtoBorrowResponse;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface IBorrowingService {
     DtoBorrowResponse borrowBook(Long bookId);
 
-    DtoBorrowResponse getBorrowingDetails(Long borrowingId);
-
-    List<DtoBorrowResponse> getBorrowingByUserId(Long userId);
+    Page<DtoBorrowResponse> getBorrowings(Pageable pageable, Long borrowingId, Long userId, Long bookId);
 
     DtoBorrowResponse returnBook(Long borrowingId);
 

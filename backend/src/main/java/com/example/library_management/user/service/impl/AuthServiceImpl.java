@@ -32,6 +32,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.view.RedirectView;
 
 import java.util.*;
 
@@ -44,6 +45,9 @@ public class AuthServiceImpl implements IAuthService {
 
     @Value("${jwt.access-expiration-seconds}")
     private long jwtAccessExpirationSeconds;
+
+    @Value("${redirection.port}")
+    private String redirectionPort;
 
     private final RefreshTokenRepository refreshTokenRepository;
 
@@ -116,9 +120,24 @@ public class AuthServiceImpl implements IAuthService {
     }
 
     @Override
-    public String verifyUser(String token) {
+    public String resendVerification(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+
+        if (user.isVerified()) {
+            throw new ConflictException("This account is already verified.");
+        }
+
+        verificationStrategy.sendVerification(user);
+
+        return "A new verification link has been sent to your email.";
+    }
+
+    @Override
+    public RedirectView verifyUser(String token) {
         return verificationStrategy.verify(token);
     }
+
 
     @Override
     public LoginResponse login(LoginRequest input) {
@@ -197,11 +216,11 @@ public class AuthServiceImpl implements IAuthService {
         String userIdByToken = jwtUtil.getUserIdByToken(token);
         if (userIdByToken == null || !jwtUtil.getClaims(token).getAudience().equals(JwtAudienceConstants.RESET_PASS_TYPE)) {
             log.warn("Invalid token, redirecting to frontend reset password page without token");
-            String redirectUrl = "http://10.155.186.94:3000/reset-password";
+            String redirectUrl = "http://"+redirectionPort+"/reset-password.html";
             return ResponseEntity.status(302).header("Location", redirectUrl).build();
         }
         log.warn("Token is valid, redirecting to frontend reset password page");
-        String redirectUrl = "http://10.155.186.94:3000/reset-password?token=" + token;
+        String redirectUrl = "http://"+redirectionPort+"/reset-password.html?token=" + token;
 
         return ResponseEntity.status(302).header("Location", redirectUrl).build();
     }
